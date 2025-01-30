@@ -1,6 +1,7 @@
 package database
 
 import (
+	"event-registration/internal/config"
 	"event-registration/internal/core/domain"
 	"time"
 
@@ -8,8 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewGormDB(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+func NewGormDB(cfg *config.Config) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(cfg.PostgresURL), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

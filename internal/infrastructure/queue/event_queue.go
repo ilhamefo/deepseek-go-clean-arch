@@ -2,17 +2,23 @@ package queue
 
 import (
 	"encoding/json"
+	"event-registration/internal/config"
 	"event-registration/internal/core/domain"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type EventQueue struct {
 	conn *amqp.Connection
 }
 
-func NewEventQueue(conn *amqp.Connection) *EventQueue {
-	return &EventQueue{conn: conn}
+func NewEventQueue(cfg *config.Config) (*EventQueue, error) {
+	conn, err := amqp.Dial(cfg.RabbitMQURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return &EventQueue{conn: conn}, nil
 }
 
 func (q *EventQueue) Publish(event *domain.Event) error {
