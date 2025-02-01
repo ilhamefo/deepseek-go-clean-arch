@@ -14,7 +14,7 @@ type CacheRepo struct {
 	client *redis.Client
 }
 
-func NewCacheRepo(cfg *config.Config) *CacheRepo {
+func NewCacheRepo(cfg *config.Config) domain.EventCache {
 	return &CacheRepo{
 		client: redis.NewClient(&redis.Options{
 			Addr: cfg.RedisURL,

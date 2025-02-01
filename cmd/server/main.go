@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"event-registration/internal/config"
+	"event-registration/internal/core/domain"
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
 	"event-registration/internal/infrastructure/database"
@@ -21,12 +22,25 @@ func main() {
 		fx.Provide(
 			config.Load,
 			database.NewGormDB,
-			redis.NewCacheRepo,
-			queue.NewEventQueue,
-			gorm.NewEventRepo,
 			service.NewEventService,
 			handler.NewEventHandler,
 			fiber.New,
+		),
+
+		// Bind interfaces to implementations
+		fx.Provide(
+			fx.Annotate(
+				gorm.NewEventRepo,
+				fx.As(new(domain.EventRepository)),
+			),
+			fx.Annotate(
+				redis.NewCacheRepo,
+				fx.As(new(domain.EventCache)),
+			),
+			fx.Annotate(
+				queue.NewEventQueue,
+				fx.As(new(domain.EventQueue)),
+			),
 		),
 
 		// Invoke the application
