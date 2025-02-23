@@ -1,9 +1,13 @@
 package service
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"event-registration/internal/core/domain"
 	"event-registration/internal/request"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
@@ -87,7 +91,7 @@ func (s *ExporterService) ExportRekapTransaksi(req *request.TransaksiRequest) (e
 		filename = "NASIONAL" + "_" + tanggal
 	}
 
-	err = s.generateXlsx(res, filename)
+	files, err := s.generateXlsx(res, filename)
 	if err != nil {
 		s.logger.Error(
 			"error_generate_excel",
@@ -96,12 +100,12 @@ func (s *ExporterService) ExportRekapTransaksi(req *request.TransaksiRequest) (e
 		return err
 	}
 
-	return err
+	return s.compressFiles(files, "files/"+filename+".tar.gz")
 }
 
-func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string) (err error) {
+func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string) (files []string, err error) {
 	sheetName := "Rekap Transaksi"
-	batchSize := 100_000
+	batchSize := 25_000
 	totalRows := len(res)
 
 	s.logger.Info(
@@ -121,12 +125,6 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 		// Create a new Excel file for each batch
 		f := excelize.NewFile()
 
-		f.SetDocProps(&excelize.DocProperties{})
-
-		// f.SetWorkbookProps(&excelize.WorkbookPropsOptions{
-		// 	SSTOptimization: true, // Enable SST optimization
-		// })
-
 		defer func() {
 			if err := f.Close(); err != nil {
 				s.logger.Error(
@@ -142,7 +140,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				"create_sheet",
 				zap.Error(err),
 			)
-			return err
+			return files, err
 		}
 
 		sw, err := f.NewStreamWriter(sheetName)
@@ -151,7 +149,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				"error_create_stream_writer",
 				zap.Error(err),
 			)
-			return err
+			return files, err
 		}
 
 		err = sw.SetColWidth(2, 15, 25)
@@ -160,7 +158,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				"error_set_col",
 				zap.Error(err),
 			)
-			return err
+			return files, err
 		}
 
 		err = s.setHeaders(sw, f, []string{"No.", "Nama Akun", "Nama Pelanggan", "Type", "Amount", "Status Code", "ID Pel", "Pembayaran", "Kanal Pembayaran", "Jenis Pembayaran", "Tanggal Transaksi", "Token", "Unit UPI", "Unit AP", "Unit UP"})
@@ -169,7 +167,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				"error_set_error",
 				zap.Error(err),
 			)
-			return err
+			return files, err
 		}
 
 		s.logger.Info(
@@ -187,7 +185,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 					"error_create_coordinate",
 					zap.Error(err),
 				)
-				return err
+				return files, err
 			}
 
 			var paymentType string = "Non Taglist"
@@ -216,7 +214,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 					"error_set_row",
 					zap.Error(err),
 				)
-				return fmt.Errorf("error set row : %s", err.Error())
+				return files, fmt.Errorf("error set row : %s", err.Error())
 			}
 		}
 
@@ -225,7 +223,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				"error_flush_file",
 				zap.Error(err),
 			)
-			return err
+			return files, err
 		}
 
 		// Save the file with a batch-specific name
@@ -235,7 +233,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				"error_save_excel_file",
 				zap.Error(err),
 			)
-			return err
+			return files, err
 		}
 
 		s.logger.Info(
@@ -243,6 +241,88 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 			zap.Int("batch", batch+1),
 			zap.String("to", batchFilename),
 		)
+
+		files = append(files, batchFilename)
+	}
+
+	return files, nil
+}
+
+func (s *ExporterService) compressFiles(files []string, outputFile string) error {
+	s.logger.Info(
+		"compress_started",
+		zap.Int("file_count", len(files)),
+		zap.Strings("files", files),
+	)
+
+	outFile, err := os.Create(outputFile)
+	if err != nil {
+		s.logger.Error(
+			"error_create_output_file",
+			zap.Error(err),
+		)
+		return err
+	}
+	defer outFile.Close()
+
+	gzipWriter := gzip.NewWriter(outFile)
+	defer gzipWriter.Close()
+
+	gzipWriter, err = gzip.NewWriterLevel(outFile, gzip.BestCompression)
+	if err != nil {
+		s.logger.Error(
+			"error_set_compression_level",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+
+	for _, file := range files {
+		// Open the input file
+		inFile, err := os.Open(file)
+		if err != nil {
+			s.logger.Error(
+				"error_open_file",
+				zap.Error(err),
+			)
+			return err
+		}
+		defer inFile.Close()
+
+		fileInfo, err := inFile.Stat()
+		if err != nil {
+			s.logger.Error(
+				"error_get_file_info",
+				zap.Error(err),
+			)
+			return err
+		}
+
+		header := &tar.Header{
+			Name:    file,                   // File name
+			Mode:    int64(fileInfo.Mode()), // File mode
+			Size:    fileInfo.Size(),        // File size
+			ModTime: fileInfo.ModTime(),     // Modification time
+		}
+
+		if err := tarWriter.WriteHeader(header); err != nil {
+			s.logger.Error(
+				"error_writing_header",
+				zap.Error(err),
+			)
+			return err
+		}
+
+		if _, err := io.Copy(tarWriter, inFile); err != nil {
+			s.logger.Error(
+				"error_copy_file",
+				zap.Error(err),
+			)
+			return err
+		}
 	}
 
 	return nil

@@ -22,6 +22,18 @@ func NewCacheRepo(cfg *config.Config) domain.EventCache {
 	}
 }
 
+func CloseRedisConnection(client *redis.Client) (err error) {
+	if client == nil {
+		return nil
+	}
+
+	if err = client.Close(); err != nil {
+		return err
+	}
+
+	return err
+}
+
 func (r *CacheRepo) Get(key string) (*domain.Event, error) {
 	data, err := r.client.Get(context.Background(), key).Bytes()
 	if err != nil {

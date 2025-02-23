@@ -12,6 +12,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -32,7 +33,13 @@ func main() {
 		),
 
 		fx.Invoke(func(app *fiber.App, exportHandler *handler.ExporterHandler) {
+			// Initialize default config
+			app.Use(pprof.New())
+
 			app.Post("/transaksi", exportHandler.ExportRekapTransaksi)
+			app.Get("/hello", exportHandler.HelloWorld)
+
+			listRoutes(app)
 		}),
 
 		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, config *config.Config, logger *zap.Logger) {
@@ -45,8 +52,6 @@ func main() {
 						)
 
 						if err := app.Listen(config.ServerExporterAddress + ":" + config.ServerExporterPort); err != nil {
-							log.Fatalf("Failed to start server: %v", err)
-
 							logger.Error(
 								"error_listening_to_server",
 								zap.Error(err),
@@ -56,6 +61,14 @@ func main() {
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
+					// close redis connection
+					// if err := redis.CloseRedisConnection(client); err != nil {
+					// 	logger.Error(
+					// 		"error_closing_redis",
+					// 		zap.Error(err),
+					// 	)
+					// }
+
 					logger.Info(
 						"server_stoped",
 					)
@@ -67,4 +80,17 @@ func main() {
 
 	// Run the application
 	app.Run()
+}
+
+func listRoutes(app *fiber.App) {
+	// Get the route stack
+	stack := app.Stack()
+
+	// Iterate over the stack
+	for _, method := range stack {
+		for _, route := range method {
+			// Print the HTTP method, path, and handler name
+			log.Printf("[%s] %s -> %s", method[0].Method, route.Path, route.Name)
+		}
+	}
 }

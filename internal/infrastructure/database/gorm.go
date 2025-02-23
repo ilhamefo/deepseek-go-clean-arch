@@ -61,5 +61,9 @@ func NewGormPlnMobileDB(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	return db.Debug(), nil
+	if !cfg.IsProduction {
+		return db.Debug(), nil
+	}
+
+	return db, nil
 }

@@ -43,3 +43,7 @@ func (h *ExporterHandler) ExportRekapTransaksi(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": "export rekap success!"})
 }
+
+func (h *ExporterHandler) HelloWorld(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"hello": "world"})
+}
