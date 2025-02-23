@@ -10,9 +10,11 @@ import (
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/repository/redis"
 	"log"
+	"net/http"
+
+	_ "net/http/pprof"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -33,8 +35,8 @@ func main() {
 		),
 
 		fx.Invoke(func(app *fiber.App, exportHandler *handler.ExporterHandler) {
-			// Initialize default config
-			app.Use(pprof.New())
+
+			startProfilingServer()
 
 			app.Post("/transaksi", exportHandler.ExportRekapTransaksi)
 			app.Get("/hello", exportHandler.HelloWorld)
@@ -93,4 +95,10 @@ func listRoutes(app *fiber.App) {
 			log.Printf("[%s] %s -> %s", method[0].Method, route.Path, route.Name)
 		}
 	}
+}
+
+func startProfilingServer() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 }
