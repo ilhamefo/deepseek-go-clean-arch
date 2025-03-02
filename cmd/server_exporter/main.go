@@ -39,9 +39,11 @@ func main() {
 			startProfilingServer()
 
 			app.Post("/transaksi", exportHandler.ExportRekapTransaksi)
+			app.Post("/transaksi-all", exportHandler.ExportAllRekapTransaksi)
+			app.Post("/pelanggan", exportHandler.ExportRekapPelanggan)
 			app.Get("/hello", exportHandler.HelloWorld)
 
-			listRoutes(app)
+			// listRoutes(app)
 		}),
 
 		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, config *config.Config, logger *zap.Logger) {
@@ -82,19 +84,6 @@ func main() {
 
 	// Run the application
 	app.Run()
-}
-
-func listRoutes(app *fiber.App) {
-	// Get the route stack
-	stack := app.Stack()
-
-	// Iterate over the stack
-	for _, method := range stack {
-		for _, route := range method {
-			// Print the HTTP method, path, and handler name
-			log.Printf("[%s] %s -> %s", method[0].Method, route.Path, route.Name)
-		}
-	}
 }
 
 func startProfilingServer() {

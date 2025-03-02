@@ -1,6 +1,6 @@
 package request
 
-type TransaksiRequest struct {
+type RekapRequest struct {
 	UnitCode  string `json:"unit_code" form:"unit_code" validate:""`
 	Area      string `json:"id_area" form:"id_area" validate:""`
 	Induk     string `json:"id_induk" form:"id_induk" validate:""`

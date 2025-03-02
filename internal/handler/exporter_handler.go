@@ -20,7 +20,7 @@ func NewExporterHandler(service *service.ExporterService, validator *validate.Va
 }
 
 func (h *ExporterHandler) ExportRekapTransaksi(c *fiber.Ctx) error {
-	request := new(request.TransaksiRequest)
+	request := new(request.RekapRequest)
 
 	if err := c.BodyParser(request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -35,6 +35,56 @@ func (h *ExporterHandler) ExportRekapTransaksi(c *fiber.Ctx) error {
 	}
 
 	err := h.service.ExportRekapTransaksi(request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": "export rekap success!"})
+}
+
+func (h *ExporterHandler) ExportAllRekapTransaksi(c *fiber.Ctx) error {
+	request := new(request.RekapRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if err := h.validator.Struct(request); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error_validations": h.validator.ValidationErrors(err),
+		})
+	}
+
+	err := h.service.ExportAllRekapTransaksi(request)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": "export rekap success!"})
+}
+
+func (h *ExporterHandler) ExportRekapPelanggan(c *fiber.Ctx) error {
+	request := new(request.RekapRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if err := h.validator.Struct(request); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error_validations": h.validator.ValidationErrors(err),
+		})
+	}
+
+	err := h.service.ExportRekapPelanggan(request)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
