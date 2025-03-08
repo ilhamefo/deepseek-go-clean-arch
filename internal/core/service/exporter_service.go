@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/xuri/excelize/v2"
 	"go.uber.org/zap"
@@ -104,6 +105,7 @@ func (s *ExporterService) ExportRekapTransaksi(req *request.RekapRequest) (err e
 }
 
 func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (err error) {
+	var payload []Payload
 	units, err := s.repo.GetAllUnit()
 	if err != nil {
 		s.logger.Error(
@@ -116,30 +118,147 @@ func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (er
 	for _, unit := range units {
 		if len(unit.Induk) > 0 {
 			for _, induk := range unit.Induk {
-				res, err := s.repo.FindTransaksi(&request.RekapRequest{
-					UnitCode:  "",
-					Area:      "",
-					Induk:     induk.IDUnitUPI,
-					Pusat:     "",
-					DateStart: req.DateStart,
-					DateEnd:   req.DateEnd,
-				})
 
 				filename := induk.Satuan + " " + induk.NamaUnitUPI
 
-				s.generateXlsx(res, filename)
+				payload = append(payload, Payload{
+					filename: filename,
+					req: &request.RekapRequest{
+						UnitCode:  "",
+						Area:      "",
+						Induk:     induk.IDUnitUPI,
+						Pusat:     "",
+						DateStart: req.DateStart,
+						DateEnd:   req.DateEnd,
+					},
+				})
 
-				if err != nil {
-					s.logger.Error(
-						"error_find_transaksi",
-						zap.Error(err),
-						zap.String("filename", filename),
-					)
-					return err
+				if len(induk.Area) > 0 {
+					for _, area := range induk.Area {
+						filename := area.Satuan + " " + area.NamaUnitAP
+
+						payload = append(payload, Payload{
+							filename: filename,
+
+							req: &request.RekapRequest{
+								UnitCode:  "",
+								Area:      area.IDUnitAP,
+								Induk:     "",
+								Pusat:     "",
+								DateStart: req.DateStart,
+								DateEnd:   req.DateEnd,
+							},
+						})
+
+						if len(area.Unit) > 0 {
+							for _, unit := range area.Unit {
+								filename := unit.Satuan + " " + unit.NamaUnitUP
+
+								payload = append(payload, Payload{
+									filename: filename,
+
+									req: &request.RekapRequest{
+										UnitCode:  unit.IDUnitUP,
+										Area:      "",
+										Induk:     "",
+										Pusat:     "",
+										DateStart: req.DateStart,
+										DateEnd:   req.DateEnd,
+									},
+								})
+							}
+						}
+					}
 				}
 			}
 		}
+	}
 
+	s.logger.Info(
+		"payload_info",
+		zap.Any("payload", payload),
+	)
+
+	s.ProcessIndukDataWithWorkerPool(payload)
+
+	return nil
+}
+
+type Payload struct {
+	filename string
+	req      *request.RekapRequest
+}
+
+func (s *ExporterService) ProcessIndukDataWithWorkerPool(data []Payload) {
+	workerCount := 5
+	jobs := make(chan Payload, len(data))
+	errorsChan := make(chan error, len(data)) // Channel for collecting errors
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for d := range jobs {
+				s.logger.Info(
+					"worker_processing",
+					zap.Int("worker_id", workerID),
+					zap.String("filename", d.filename),
+				)
+				if err := s.process(d); err != nil {
+					errorsChan <- fmt.Errorf("worker %d: %w", workerID, err) // Add worker ID to error
+				}
+			}
+		}(i + 1)
+	}
+
+	for _, d := range data {
+		jobs <- d
+	}
+	close(jobs)
+
+	wg.Wait()
+	close(errorsChan)
+
+	var allErrors []error
+	for err := range errorsChan {
+		allErrors = append(allErrors, err)
+	}
+
+	if len(allErrors) > 0 {
+		fmt.Println("\nErrors encountered:")
+		for _, err := range allErrors {
+			fmt.Println(err)
+			s.logger.Error(
+				"error_from_channel",
+				zap.Error(err),
+			)
+		}
+	}
+}
+
+func (s *ExporterService) process(data Payload) error {
+	res, err := s.repo.FindTransaksi(data.req)
+	if err != nil {
+		s.logger.Error(
+			"error_find_transaksi",
+			zap.Error(err),
+			zap.String("filename", data.filename),
+		)
+
+		return err
+	}
+
+	_, err = s.generateXlsx(res, data.filename)
+	if err != nil {
+		s.logger.Error(
+			"error_find_transaksi",
+			zap.Error(err),
+			zap.String("filename", data.filename),
+		)
+
+		return err
 	}
 
 	return nil
@@ -319,13 +438,6 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				)
 				return nil, errMakeDir
 			}
-
-			// s.logger.Error(
-			// 	"error_check_stat",
-			// 	zap.Error(err),
-			// )
-
-			// return files, err
 		}
 
 		// Save the file with a batch-specific name
