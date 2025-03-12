@@ -35,7 +35,7 @@ func NewGormDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-func NewGormPlnMobileDB(cfg *config.Config) (*gorm.DB, error) {
+func NewGormPlnMobileDB(cfg *config.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
 
 	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.PostgresPlnMobileUser,
@@ -51,6 +51,8 @@ func NewGormPlnMobileDB(cfg *config.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	db.Logger = loggr
 
 	sqlDB, err := db.DB()
 	if err != nil {

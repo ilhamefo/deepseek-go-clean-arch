@@ -24,13 +24,16 @@ func main() {
 
 		fx.Provide(
 			config.Load,
+			config.NewLogLevel,
+			config.NewZapLogger,
+			config.NewZapGormLogger,
 			validator.NewValidator,
 			database.NewGormPlnMobileDB,
 			redis.NewCacheRepo,
 			gorm.NewExporterRepo,
 			service.NewExporterService,
 			handler.NewExporterHandler,
-			config.NewZapLogger,
+			// config.NewZapLogger,
 			fiber.New,
 		),
 

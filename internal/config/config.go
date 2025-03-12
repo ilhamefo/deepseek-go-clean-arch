@@ -20,6 +20,9 @@ type Config struct {
 	PostgresPlnMobileDatabase string        `mapstructure:"POSTGRES_PLN_MOBILE_DATABASE"`
 	PostgresPlnMobileUser     string        `mapstructure:"POSTGRES_PLN_MOBILE_USER"`
 	PostgresPlnMobilePassword string        `mapstructure:"POSTGRES_PLN_MOBILE_PASSWORD"`
+	SshAddress                string        `mapstructure:"SSH_ADDRESS"`
+	SshUsername               string        `mapstructure:"SSH_USERNAME"`
+	SshPassword               string        `mapstructure:"SSH_PASSWORD"`
 	IsProduction              bool          `mapstructure:"IS_PRODUCTION"`
 }
 
