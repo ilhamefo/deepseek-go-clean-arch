@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"event-registration/internal/constant"
 	"event-registration/internal/core/service"
 	validate "event-registration/internal/infrastructure/validator"
 	"event-registration/internal/request"
@@ -24,7 +25,7 @@ func (h *ExporterHandler) ExportRekapTransaksi(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": constant.INVALID_REQUEST_BODY,
 		})
 	}
 
@@ -41,7 +42,7 @@ func (h *ExporterHandler) ExportRekapTransaksi(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": "export rekap success!"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": constant.SUCCESS_EXPORT})
 }
 
 func (h *ExporterHandler) ExportAllRekapTransaksi(c *fiber.Ctx) error {
@@ -49,7 +50,7 @@ func (h *ExporterHandler) ExportAllRekapTransaksi(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": constant.INVALID_REQUEST_BODY,
 		})
 	}
 
@@ -66,7 +67,7 @@ func (h *ExporterHandler) ExportAllRekapTransaksi(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": "export rekap success!"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": constant.SUCCESS_EXPORT})
 }
 
 func (h *ExporterHandler) ExportRekapPelanggan(c *fiber.Ctx) error {
@@ -74,7 +75,7 @@ func (h *ExporterHandler) ExportRekapPelanggan(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": constant.INVALID_REQUEST_BODY,
 		})
 	}
 
@@ -91,7 +92,7 @@ func (h *ExporterHandler) ExportRekapPelanggan(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": "export rekap success!"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": constant.SUCCESS_EXPORT})
 }
 
 func (h *ExporterHandler) HelloWorld(c *fiber.Ctx) error {
