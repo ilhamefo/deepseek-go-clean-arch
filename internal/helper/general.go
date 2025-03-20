@@ -3,6 +3,8 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -38,4 +40,12 @@ func EndDateParser(str string) (*time.Time, error) {
 	res = res.Add(24 * time.Hour).Add(-1 * time.Second)
 
 	return &res, nil
+}
+
+func NormalizeString(input string) string {
+	input = strings.TrimSpace(input)
+	input = strings.ToUpper(input)
+	input = regexp.MustCompile(`[^A-Z0-9\s-]`).ReplaceAllString(input, "")
+	input = strings.ReplaceAll(input, " ", "_")
+	return input
 }

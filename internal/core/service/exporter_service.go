@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"event-registration/internal/core/domain"
+	"event-registration/internal/helper"
 	"event-registration/internal/request"
 	"fmt"
 	"io"
@@ -119,7 +120,7 @@ func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (er
 		if len(unit.Induk) > 0 {
 			for _, induk := range unit.Induk {
 
-				filename := induk.Satuan + " " + induk.NamaUnitUPI
+				filename := helper.NormalizeString(induk.Satuan + " " + induk.NamaUnitUPI)
 
 				payload = append(payload, Payload{
 					filename: filename,
@@ -135,7 +136,7 @@ func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (er
 
 				if len(induk.Area) > 0 {
 					for _, area := range induk.Area {
-						filename := area.Satuan + " " + area.NamaUnitAP
+						filename := helper.NormalizeString(area.Satuan + " " + area.NamaUnitAP)
 
 						payload = append(payload, Payload{
 							filename: filename,
@@ -152,7 +153,7 @@ func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (er
 
 						if len(area.Unit) > 0 {
 							for _, unit := range area.Unit {
-								filename := unit.Satuan + " " + unit.NamaUnitUP
+								filename := helper.NormalizeString(unit.Satuan + " " + unit.NamaUnitUP)
 
 								payload = append(payload, Payload{
 									filename: filename,
