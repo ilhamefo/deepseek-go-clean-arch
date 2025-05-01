@@ -7,27 +7,41 @@ import (
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
 	"event-registration/internal/infrastructure/database"
-	"event-registration/internal/infrastructure/queue"
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/repository/redis"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
+
+	_ "event-registration/docs"
+
+	"github.com/gofiber/swagger"
 )
 
+// @title Fiber Example API
+// @version 1.0
+// @description This is a sample swagger for Fiber
+// @termsOfService http://swagger.io/terms/
+// @contact.name API Support
+// @contact.email fiber@swagger.io
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @host localhost:5051
+// @BasePath /
 func main() {
 	app := fx.New(
 		// Provide dependencies
 		fx.Provide(
 			config.Load,
+			config.NewLogLevel,
+			config.NewZapLogger,
 			database.NewGormDB,
 			service.NewEventService,
 			handler.NewEventHandler,
 			fiber.New,
 		),
 
-		// Bind interfaces to implementations
 		fx.Provide(
 			fx.Annotate(
 				gorm.NewEventRepo,
@@ -37,31 +51,54 @@ func main() {
 				redis.NewCacheRepo,
 				fx.As(new(domain.EventCache)),
 			),
-			fx.Annotate(
-				queue.NewEventQueue,
-				fx.As(new(domain.EventQueue)),
-			),
 		),
 
 		// Invoke the application
 		fx.Invoke(func(app *fiber.App, eventHandler *handler.EventHandler) {
-			app.Post("/register", eventHandler.RegisterEvent)
+			app.Get("/swagger/*", swagger.New(swagger.Config{
+				DeepLinking:  true,
+				DocExpansion: "list",
+			}))
+
+			// Routes
+			app.Get("/users/:id", eventHandler.GetUser)
+			// app.Post("/register", eventHandler.RegisterEvent)
+
+			// TODO: buat authentication dengan access token dan refresh token
+			// Access token (JWT, short-lived, 15 mins)
+			// Refresh token (UUID/random string, stored in Redis, 7 days)
+			// /login dan /refresh
+
+			// Swagger UI
+			// app.Use(swagger.New(swagger.Config{
+			// 	FilePath: "./docs/swagger.json",
+			// }))
+
 		}),
 
 		// Lifecycle hooks
-		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App) {
+		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, config *config.Config, logger *zap.Logger) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					go func() {
-						log.Println("Starting server on :8080")
-						if err := app.Listen(":8080"); err != nil {
-							log.Fatalf("Failed to start server: %v", err)
+						logger.Info(
+							"server_started",
+							zap.String("server_on", config.ServerAddress+":"+config.ServerPort),
+						)
+
+						if err := app.Listen(config.ServerAddress + ":" + config.ServerPort); err != nil {
+							logger.Error(
+								"error_listening_to_server",
+								zap.Error(err),
+							)
 						}
 					}()
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
-					log.Println("Stopping server")
+					logger.Info(
+						"server_stoped",
+					)
 					return app.Shutdown()
 				},
 			})

@@ -10,7 +10,7 @@ type Transaksi struct {
 	StatusCode     string `json:"status_code" gorm:"column:status_code"`
 	Name           string `json:"name" gorm:"column:name"`
 	ConsumerName   string `json:"consumer_name" gorm:"column:consumer_name"`
-	MeterID        string `json:"meter_id" gorm:"column:meter_id"`
+	MeterID        string `json:"meter_number" gorm:"column:meter_number"`
 	PaymentGateway string `json:"payment_gateway" gorm:"column:payment_gateway"`
 	UnitUP         string `json:"unit_up" gorm:"column:unit_up"`
 	UnitAP         string `json:"unit_ap" gorm:"column:unit_ap"`
@@ -25,7 +25,7 @@ type Transaksi struct {
 }
 
 func (a *Transaksi) TableName() string {
-	return "public.transaksi"
+	return "plnmobile.vw_transaksi"
 }
 
 type Pelanggan struct {

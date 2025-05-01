@@ -5,21 +5,23 @@ import (
 	"errors"
 	"event-registration/internal/core/domain"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // EventService handles the business logic for event registrations
 type EventService struct {
-	repo  domain.EventRepository
-	cache domain.EventCache
-	queue domain.EventQueue
+	repo   domain.EventRepository
+	cache  domain.EventCache
+	logger *zap.Logger
 }
 
 // NewEventService creates a new instance of EventService
-func NewEventService(repo domain.EventRepository, cache domain.EventCache, queue domain.EventQueue) *EventService {
+func NewEventService(repo domain.EventRepository, cache domain.EventCache, logger *zap.Logger) *EventService {
 	return &EventService{
-		repo:  repo,
-		cache: cache,
-		queue: queue,
+		repo:   repo,
+		cache:  cache,
+		logger: logger,
 	}
 }
 
@@ -63,10 +65,10 @@ func (s *EventService) processRegistration(event *domain.Event, userID string) e
 	}
 
 	// Publish the event to the queue for further processing
-	err = s.queue.Publish(event)
-	if err != nil {
-		return errors.New("failed to publish event")
-	}
+	// err = s.queue.Publish(event)
+	// if err != nil {
+	// 	return errors.New("failed to publish event")
+	// }
 
 	return nil
 }

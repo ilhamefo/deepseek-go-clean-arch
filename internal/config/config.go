@@ -12,6 +12,8 @@ type Config struct {
 	RedisURL                  string        `mapstructure:"REDIS_URL"`
 	RabbitMQURL               string        `mapstructure:"RABBITMQ_URL"`
 	CacheTimeout              time.Duration `mapstructure:"CACHE_TIMEOUT"`
+	ServerAddress             string        `mapstructure:"SERVER_ADDRESS"`
+	ServerPort                string        `mapstructure:"SERVER_PORT"`
 	ServerExporterAddress     string        `mapstructure:"SERVER_EXPORTER_ADDRESS"`
 	ServerExporterPort        string        `mapstructure:"SERVER_EXPORTER_PORT"`
 	PostgresPlnMobileURL      string        `mapstructure:"POSTGRES_PLN_MOBILE_URL"`

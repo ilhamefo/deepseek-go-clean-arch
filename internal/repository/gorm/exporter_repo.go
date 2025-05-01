@@ -18,7 +18,9 @@ func NewExporterRepo(db *gorm.DB) domain.ExporterRepository {
 
 func (r *ExporterRepo) GetAllUnit() (result []*domain.Regional, err error) {
 	err = r.db.Model(&domain.Regional{}).
-		Preload("Induk.Area.Unit").
+		// Preload("Induk").
+		Preload("Induk.Area").
+		// Preload("Induk.Area.Unit").
 		Find(&result).Error
 
 	return result, err
@@ -26,10 +28,10 @@ func (r *ExporterRepo) GetAllUnit() (result []*domain.Regional, err error) {
 
 func (r *ExporterRepo) FindTransaksi(req *request.RekapRequest) (result []*domain.Transaksi, err error) {
 
-	query := r.db.Select("name, consumer_name, type, amount, status_code, meter_id, title, payment_gateway, created_at, token, up.id_unit_up AS unit_up,	up.nama_unit_up, ap.nama_unit_ap, upi.nama_unit_upi, upi.id_unit_upi as unit_upi, ap.id_unit_ap as unit_ap").
-		Joins("JOIN public.pln_unit_upi upi ON transaksi.unit_upi = upi.id_unit_upi :: text").
-		Joins("JOIN public.pln_unit_ap ap ON transaksi.unit_ap = ap.id_unit_ap").
-		Joins("JOIN public.pln_unit_up up ON transaksi.unit_up = up.id_unit_up")
+	query := r.db.Select("name, consumer_name, type, amount, status_code, meter_number, title, payment_gateway, created_at, token, up.id_unit_up AS unit_up,	up.nama_unit_up, ap.nama_unit_ap, upi.nama_unit_upi, upi.id_unit_upi as unit_upi, ap.id_unit_ap as unit_ap").
+		Joins("JOIN public.pln_unit_upi upi ON plnmobile.vw_transaksi.unit_upi = upi.id_unit_upi :: text").
+		Joins("JOIN public.pln_unit_ap ap ON plnmobile.vw_transaksi.unit_ap = ap.id_unit_ap").
+		Joins("JOIN public.pln_unit_up up ON plnmobile.vw_transaksi.unit_up = up.id_unit_up")
 
 	if len(req.Induk) > 0 {
 		query.Where("unit_upi = ?", req.Induk)

@@ -182,6 +182,10 @@ func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (er
 
 	s.ProcessIndukDataWithWorkerPool(payload)
 
+	s.logger.Info(
+		"done_export",
+	)
+
 	return nil
 }
 
@@ -191,7 +195,7 @@ type Payload struct {
 }
 
 func (s *ExporterService) ProcessIndukDataWithWorkerPool(data []Payload) {
-	workerCount := 5
+	workerCount := 10
 	jobs := make(chan Payload, len(data))
 	errorsChan := make(chan error, len(data)) // Channel for collecting errors
 
@@ -288,7 +292,7 @@ func (s *ExporterService) ExportRekapPelanggan(req *request.RekapRequest) (err e
 	} else if len(req.Area) > 0 {
 		filename = "AREA_" + req.Area + "_" + tanggal
 	} else if len(req.UnitCode) > 0 {
-		filename = "UNIT_" + req.Area + "_" + tanggal
+		filename = "UNIT_" + req.UnitCode + "_" + tanggal
 	} else {
 		filename = "NASIONAL" + "_" + tanggal
 	}
@@ -307,7 +311,7 @@ func (s *ExporterService) ExportRekapPelanggan(req *request.RekapRequest) (err e
 
 func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string) (files []string, err error) {
 	sheetName := "Rekap Transaksi"
-	batchSize := 25_000 * 4
+	batchSize := 25_000 * 6
 	totalRows := len(res)
 
 	s.logger.Info(
@@ -390,9 +394,11 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 				return files, err
 			}
 
-			var paymentType string = "Non Taglist"
-			if data.Type != "nontaglis" {
-				paymentType = "Taglist"
+			var paymentType string = ""
+			if data.Type == "" {
+				paymentType = "-"
+			} else {
+				paymentType = data.Type
 			}
 
 			if err := sw.SetRow(cell, []interface{}{
@@ -465,7 +471,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 
 func (s *ExporterService) generateXlsxPelanggan(res []*domain.Pelanggan, filename string) (files []string, err error) {
 	sheetName := "Rekap Pelanggan"
-	batchSize := 25_000 * 4
+	batchSize := 25_000 * 6
 	totalRows := len(res)
 
 	s.logger.Info(
