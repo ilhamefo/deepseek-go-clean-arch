@@ -25,9 +25,6 @@ func NewEventHandler(service *service.EventService) *EventHandler {
 // @Param event_id path string true "Event ID"
 // @Param user_id query string true "User ID"
 // @Success 200 {object} domain.Event
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /users/{event_id} [get]
 func (h *EventHandler) RegisterEvent(c *fiber.Ctx) error {
 	var req struct {

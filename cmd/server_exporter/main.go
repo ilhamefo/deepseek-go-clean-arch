@@ -15,10 +15,23 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+
+	_ "event-registration/docs"
 )
 
+// @title Fiber Example API
+// @version 1.0
+// @description This is a sample swagger for Fiber
+// @termsOfService http://swagger.io/terms/
+// @contact.name API Support
+// @contact.email fiber@swagger.io
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @host localhost:5050
+// @BasePath /
 func main() {
 	app := fx.New(
 
@@ -39,8 +52,15 @@ func main() {
 
 		fx.Invoke(func(app *fiber.App, exportHandler *handler.ExporterHandler) {
 
+			// Register Swagger route
+			app.Get("/swagger/*", swagger.New(swagger.Config{
+				DeepLinking:  true,
+				DocExpansion: "list",
+			}))
+
 			startProfilingServer()
 
+			// Routes
 			app.Post("/transaksi", exportHandler.ExportRekapTransaksi)
 			app.Post("/transaksi-all", exportHandler.ExportAllRekapTransaksi)
 			app.Post("/pelanggan", exportHandler.ExportRekapPelanggan)
