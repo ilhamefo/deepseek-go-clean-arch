@@ -30,7 +30,7 @@ import (
 // @contact.email fiber@swagger.io
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-// @host localhost:5050
+// @host 127.0.0.1:5050
 // @BasePath /
 func main() {
 	app := fx.New(

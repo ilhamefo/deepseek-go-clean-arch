@@ -26,6 +26,9 @@ type Config struct {
 	SshUsername               string        `mapstructure:"SSH_USERNAME"`
 	SshPassword               string        `mapstructure:"SSH_PASSWORD"`
 	IsProduction              bool          `mapstructure:"IS_PRODUCTION"`
+	GoogleClientSecret        string        `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	GoogleClientID            string        `mapstructure:"GOOGLE_CLIENT_ID"`
+	GoogleRedirectUri         string        `mapstructure:"GOOGLE_REDIRECT_URI"`
 }
 
 func Load() (*Config, error) {

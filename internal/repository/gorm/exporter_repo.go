@@ -19,8 +19,8 @@ func NewExporterRepo(db *gorm.DB) domain.ExporterRepository {
 func (r *ExporterRepo) GetAllUnit() (result []*domain.Regional, err error) {
 	err = r.db.Model(&domain.Regional{}).
 		// Preload("Induk").
-		// Preload("Induk.Area").
-		Preload("Induk.Area.Unit").
+		Preload("Induk.Area").
+		// Preload("Induk.Area.Unit").
 		Find(&result).Error
 
 	return result, err

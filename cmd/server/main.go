@@ -7,6 +7,7 @@ import (
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
 	"event-registration/internal/infrastructure/database"
+	"event-registration/internal/infrastructure/validator"
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/repository/redis"
 
@@ -27,7 +28,7 @@ import (
 // @contact.email fiber@swagger.io
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-// @host localhost:5051
+// @host 127.0.0.1:5051
 // @BasePath /
 func main() {
 	app := fx.New(
@@ -36,9 +37,13 @@ func main() {
 			config.Load,
 			config.NewLogLevel,
 			config.NewZapLogger,
+			config.NewZapGormLogger,
+			validator.NewValidator,
+			config.NewGoogleOAuthConfig,
 			database.NewGormDB,
-			service.NewEventService,
-			handler.NewEventHandler,
+			gorm.NewAuthRepo,
+			service.NewAuthService,
+			handler.NewAuthService,
 			fiber.New,
 		),
 
@@ -54,26 +59,16 @@ func main() {
 		),
 
 		// Invoke the application
-		fx.Invoke(func(app *fiber.App, eventHandler *handler.EventHandler) {
+		fx.Invoke(func(app *fiber.App, authHandler *handler.AuthHandler) {
 			app.Get("/swagger/*", swagger.New(swagger.Config{
 				DeepLinking:  true,
 				DocExpansion: "list",
 			}))
 
-			// Routes
-			app.Get("/users/:id", eventHandler.GetUser)
-			// app.Post("/register", eventHandler.RegisterEvent)
-
-			// TODO: buat authentication dengan access token dan refresh token
-			// Access token (JWT, short-lived, 15 mins)
-			// Refresh token (UUID/random string, stored in Redis, 7 days)
-			// /login dan /refresh
-
-			// Swagger UI
-			// app.Use(swagger.New(swagger.Config{
-			// 	FilePath: "./docs/swagger.json",
-			// }))
-
+			// AUTH HANDLER START
+			// app.Get("/auth/:id", authHandler.GetUser)
+			app.Get("/auth/login-url", authHandler.GetLoginUrl)
+			app.Get("/auth/google/callback", authHandler.GoogleHandleCallback)
 		}),
 
 		// Lifecycle hooks

@@ -1,4 +1,11 @@
 .env
 files
-*.txt
 go.sum
+
+# log files
+*.txt
+*.txt.gz
+docs
+bash.exe.stackdump
+main.exe
+.vscode
