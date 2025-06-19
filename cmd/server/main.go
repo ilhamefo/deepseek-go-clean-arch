@@ -11,11 +11,11 @@ import (
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/repository/redis"
 
+	_ "event-registration/docs"
+
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-
-	_ "event-registration/docs"
 
 	"github.com/gofiber/swagger"
 )
@@ -40,7 +40,7 @@ func main() {
 			config.NewZapGormLogger,
 			validator.NewValidator,
 			config.NewGoogleOAuthConfig,
-			database.NewGormDB,
+			database.NewGormDBAuth,
 			gorm.NewAuthRepo,
 			service.NewAuthService,
 			handler.NewAuthService,
@@ -58,30 +58,19 @@ func main() {
 			),
 		),
 
-		// Invoke the application
-		fx.Invoke(func(app *fiber.App, authHandler *handler.AuthHandler) {
-			app.Get("/swagger/*", swagger.New(swagger.Config{
-				DeepLinking:  true,
-				DocExpansion: "list",
-			}))
+		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *config.Config, logger *zap.Logger) {
 
-			// AUTH HANDLER START
-			// app.Get("/auth/:id", authHandler.GetUser)
-			app.Get("/auth/login-url", authHandler.GetLoginUrl)
-			app.Get("/auth/google/callback", authHandler.GoogleHandleCallback)
-		}),
+			app.Use(config.NewZapLoggerMiddleware(logger))
 
-		// Lifecycle hooks
-		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, config *config.Config, logger *zap.Logger) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					go func() {
 						logger.Info(
 							"server_started",
-							zap.String("server_on", config.ServerAddress+":"+config.ServerPort),
+							zap.String("server_on", cfg.ServerAddress+":"+cfg.ServerPort),
 						)
 
-						if err := app.Listen(config.ServerAddress + ":" + config.ServerPort); err != nil {
+						if err := app.Listen(cfg.ServerAddress + ":" + cfg.ServerPort); err != nil {
 							logger.Error(
 								"error_listening_to_server",
 								zap.Error(err),
@@ -97,6 +86,18 @@ func main() {
 					return app.Shutdown()
 				},
 			})
+		}),
+
+		// Invoke the application
+		fx.Invoke(func(app *fiber.App, authHandler *handler.AuthHandler) {
+			app.Get("/swagger/*", swagger.New(swagger.Config{
+				DeepLinking:  true,
+				DocExpansion: "list",
+			}))
+
+			// AUTH HANDLER START
+			app.Get("/auth/google/login-url", authHandler.GetLoginUrl)
+			app.Get("/auth/google/callback", authHandler.GoogleHandleCallback)
 		}),
 	)
 

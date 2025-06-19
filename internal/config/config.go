@@ -29,6 +29,12 @@ type Config struct {
 	GoogleClientSecret        string        `mapstructure:"GOOGLE_CLIENT_SECRET"`
 	GoogleClientID            string        `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleRedirectUri         string        `mapstructure:"GOOGLE_REDIRECT_URI"`
+	AuthDB                    string        `mapstructure:"AUTH_DB"`
+	AuthDBSchema              string        `mapstructure:"AUTH_DB_SCHEMA"`
+	AuthDBHost                string        `mapstructure:"AUTH_DB_HOST"`
+	AuthDBPort                string        `mapstructure:"AUTH_DB_PORT"`
+	AuthDBUser                string        `mapstructure:"AUTH_DB_USER"`
+	AuthDBPassword            string        `mapstructure:"AUTH_DB_PASSWORD"`
 }
 
 func Load() (*Config, error) {
