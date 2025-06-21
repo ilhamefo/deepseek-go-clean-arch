@@ -36,6 +36,7 @@ func main() {
 			config.NewLogLevel,
 			config.NewZapLogger,
 			config.NewZapGormLogger,
+			config.NewRedisConfig,
 			middleware.NewMiddleware,
 			validator.NewValidator,
 			config.NewGoogleOAuthConfig,

@@ -11,9 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/storage/redis"
 )
 
-func NewFiberApp(m *middleware.Middleware) *fiber.App {
+func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage) *fiber.App {
 	app := fiber.New(fiber.Config{
 		CaseSensitive: true,
 		StrictRouting: true,
@@ -28,8 +29,7 @@ func NewFiberApp(m *middleware.Middleware) *fiber.App {
 		Max:          100,
 		Expiration:   1 * time.Minute,
 		LimitReached: limitReachedResponse(),
-		// use redis or in-memory store for distributed rate limiting
-		// Store:       redisStore, // Uncomment if using Redis store
+		Store:        redisStore,
 	}))
 	app.Use(recover.New())
 

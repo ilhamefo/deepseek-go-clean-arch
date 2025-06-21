@@ -34,6 +34,10 @@ type Config struct {
 	AuthDBPort                string        `mapstructure:"AUTH_DB_PORT"`
 	AuthDBUser                string        `mapstructure:"AUTH_DB_USER"`
 	AuthDBPassword            string        `mapstructure:"AUTH_DB_PASSWORD"`
+	RedisHost                 string        `mapstructure:"REDIS_HOST"`
+	RedisPort                 int           `mapstructure:"REDIS_PORT"`
+	RedisPassword             string        `mapstructure:"REDIS_PASSWORD"`
+	RedisDB                   int           `mapstructure:"REDIS_DB"`
 }
 
 func Load() (*Config, error) {
