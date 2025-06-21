@@ -10,17 +10,17 @@ import (
 	"event-registration/internal/infrastructure/validator"
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/repository/redis"
+	"event-registration/internal/route"
 
 	_ "event-registration/docs"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-
-	"github.com/gofiber/swagger"
 )
 
-// @title Fiber Example API
+// @title Auth API
 // @version 1.0
 // @description This is a sample swagger for Fiber
 // @termsOfService http://swagger.io/terms/
@@ -43,64 +43,36 @@ func main() {
 			database.NewGormDBAuth,
 			gorm.NewAuthRepo,
 			service.NewAuthService,
-			handler.NewAuthService,
+			handler.NewAuthHandler,
 			fiber.New,
-		),
-
-		fx.Provide(
-			fx.Annotate(
-				gorm.NewEventRepo,
-				fx.As(new(domain.EventRepository)),
-			),
-			fx.Annotate(
-				redis.NewCacheRepo,
-				fx.As(new(domain.EventCache)),
-			),
+			fx.Annotate(gorm.NewEventRepo, fx.As(new(domain.EventRepository))),
+			fx.Annotate(redis.NewCacheRepo, fx.As(new(domain.EventCache))),
 		),
 
 		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *config.Config, logger *zap.Logger) {
 
+			app.Use(recover.New())
 			app.Use(config.NewZapLoggerMiddleware(logger))
 
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					go func() {
-						logger.Info(
-							"server_started",
-							zap.String("server_on", cfg.ServerAddress+":"+cfg.ServerPort),
-						)
-
+						logger.Info("server_started", zap.String("server_on", cfg.ServerAddress+":"+cfg.ServerPort))
 						if err := app.Listen(cfg.ServerAddress + ":" + cfg.ServerPort); err != nil {
-							logger.Error(
-								"error_listening_to_server",
-								zap.Error(err),
-							)
+							logger.Error("error_listening_to_server", zap.Error(err))
 						}
 					}()
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
-					logger.Info(
-						"server_stoped",
-					)
+					logger.Info("server_stoped")
 					return app.Shutdown()
 				},
 			})
 		}),
 
-		// Invoke the application
-		fx.Invoke(func(app *fiber.App, authHandler *handler.AuthHandler) {
-			app.Get("/swagger/*", swagger.New(swagger.Config{
-				DeepLinking:  true,
-				DocExpansion: "list",
-			}))
-
-			// AUTH HANDLER START
-			app.Get("/auth/google/login-url", authHandler.GetLoginUrl)
-			app.Get("/auth/google/callback", authHandler.GoogleHandleCallback)
-		}),
+		fx.Invoke(route.RegisterAuthRoutes),
 	)
 
-	// Run the application
 	app.Run()
 }

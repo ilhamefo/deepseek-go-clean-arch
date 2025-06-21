@@ -121,7 +121,7 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 			return err
 		}
 
-		s.logger.Info("check_is_registered", zap.Any("exists", exists))
+		s.logger.Info("check_is_registered", zap.Bool("exists", exists))
 
 		if !exists {
 			err = s.register(user)

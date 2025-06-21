@@ -15,8 +15,8 @@ type AuthHandler struct {
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthService(service *service.AuthService) *AuthHandler {
-	return &AuthHandler{service: service}
+func NewAuthHandler(service *service.AuthService, validator *validate.Validator) *AuthHandler {
+	return &AuthHandler{service: service, validator: validator}
 }
 
 // GetUser godoc

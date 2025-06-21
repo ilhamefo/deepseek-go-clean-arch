@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"event-registration/internal/core/domain"
-	"event-registration/internal/helper"
 
 	"gorm.io/gorm"
 )
@@ -29,8 +28,6 @@ func (r *AuthRepo) IsRegistered(email string) (isRegistered bool, err error) {
 
 func (r *AuthRepo) Register(user domain.User) (err error) {
 	err = r.db.Model(&domain.User{}).Omit("ID").Create(&user).Error
-
-	helper.PrettyPrint(user)
 
 	return err
 }
