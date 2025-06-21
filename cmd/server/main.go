@@ -3,19 +3,17 @@ package main
 import (
 	"context"
 	"event-registration/internal/config"
-	"event-registration/internal/core/domain"
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
 	"event-registration/internal/infrastructure/database"
 	"event-registration/internal/infrastructure/validator"
+	"event-registration/internal/middleware"
 	"event-registration/internal/repository/gorm"
-	"event-registration/internal/repository/redis"
 	"event-registration/internal/route"
 
 	_ "event-registration/docs"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -34,24 +32,22 @@ func main() {
 	app := fx.New(
 		// Provide dependencies
 		fx.Provide(
-			config.Load,
+			config.Load, // config.Load should be the first to ensure config is available for other components
 			config.NewLogLevel,
 			config.NewZapLogger,
 			config.NewZapGormLogger,
+			middleware.NewMiddleware,
 			validator.NewValidator,
 			config.NewGoogleOAuthConfig,
 			database.NewGormDBAuth,
 			gorm.NewAuthRepo,
 			service.NewAuthService,
 			handler.NewAuthHandler,
-			fiber.New,
-			fx.Annotate(gorm.NewEventRepo, fx.As(new(domain.EventRepository))),
-			fx.Annotate(redis.NewCacheRepo, fx.As(new(domain.EventCache))),
+			config.NewFiberApp,
 		),
 
 		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *config.Config, logger *zap.Logger) {
 
-			app.Use(recover.New())
 			app.Use(config.NewZapLoggerMiddleware(logger))
 
 			lc.Append(fx.Hook{

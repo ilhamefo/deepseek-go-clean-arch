@@ -30,7 +30,7 @@ func NewAuthHandler(service *service.AuthService, validator *validate.Validator)
 func (h *AuthHandler) GetLoginUrl(c *fiber.Ctx) error {
 	url, token, err := h.service.GetLoginUrl()
 	if err != nil {
-		return responseError(c, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	c.Cookie(&fiber.Cookie{
@@ -75,7 +75,7 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 
 	err := h.service.GoogleHandleCallback(c.Context(), request)
 	if err != nil {
-		return responseError(c, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return responseSuccess(c, "OK")

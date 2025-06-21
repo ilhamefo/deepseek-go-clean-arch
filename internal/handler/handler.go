@@ -13,11 +13,3 @@ func responseSuccess(c *fiber.Ctx, data interface{}) error {
 		"data":    data,
 	})
 }
-
-func responseError(c *fiber.Ctx, data interface{}) error {
-	return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-		"status":  http.StatusBadRequest,
-		"message": "failed",
-		"errors":  data,
-	})
-}
