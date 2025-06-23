@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"event-registration/internal/common"
 	"event-registration/internal/config"
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
@@ -47,7 +48,7 @@ func main() {
 			config.NewFiberApp,
 		),
 
-		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *config.Config, logger *zap.Logger) {
+		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *common.Config, logger *zap.Logger) {
 
 			app.Use(config.NewZapLoggerMiddleware(logger))
 

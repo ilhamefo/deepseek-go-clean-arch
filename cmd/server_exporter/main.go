@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"event-registration/internal/common"
 	"event-registration/internal/config"
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
@@ -69,7 +70,7 @@ func main() {
 			// listRoutes(app)
 		}),
 
-		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, config *config.Config, logger *zap.Logger) {
+		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, config *common.Config, logger *zap.Logger) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					go func() {

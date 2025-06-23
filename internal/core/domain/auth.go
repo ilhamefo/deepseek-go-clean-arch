@@ -5,6 +5,7 @@ import "time"
 type AuthRepository interface {
 	IsRegistered(email string) (isRegistered bool, err error)
 	Register(user User) (err error)
+	FindByEmail(email string) (user *User, err error)
 }
 
 type User struct {

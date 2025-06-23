@@ -27,7 +27,22 @@ func (r *AuthRepo) IsRegistered(email string) (isRegistered bool, err error) {
 }
 
 func (r *AuthRepo) Register(user domain.User) (err error) {
-	err = r.db.Model(&domain.User{}).Omit("ID").Create(&user).Error
+	err = r.db.
+		Model(&domain.User{}).
+		Omit("ID").
+		Create(&user).
+		Error
 
 	return err
+}
+
+func (r *AuthRepo) FindByEmail(email string) (user *domain.User, err error) {
+	err = r.db.Table("users").
+		Where("email = ?", email).
+		First(&user).Error
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }

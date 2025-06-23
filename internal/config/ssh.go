@@ -1,10 +1,12 @@
 package config
 
 import (
+	"event-registration/internal/common"
+
 	"golang.org/x/crypto/ssh"
 )
 
-func NewSshClient(cfg *Config) *ssh.Client {
+func NewSshClient(cfg *common.Config) *ssh.Client {
 	sshConfig := &ssh.ClientConfig{
 		User:            cfg.SshUsername,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),

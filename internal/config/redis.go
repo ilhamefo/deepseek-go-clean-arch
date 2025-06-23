@@ -1,10 +1,12 @@
 package config
 
 import (
+	"event-registration/internal/common"
+
 	"github.com/gofiber/storage/redis"
 )
 
-func NewRedisConfig(cfg *Config) *redis.Storage {
+func NewRedisConfig(cfg *common.Config) *redis.Storage {
 	return redis.New(redis.Config{
 		Host:     cfg.RedisHost,
 		Port:     cfg.RedisPort,

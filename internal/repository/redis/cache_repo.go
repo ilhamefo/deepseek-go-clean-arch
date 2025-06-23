@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"encoding/json"
-	"event-registration/internal/config"
+	"event-registration/internal/common"
 	"event-registration/internal/core/domain"
 	"time"
 
@@ -14,7 +14,7 @@ type CacheRepo struct {
 	client *redis.Client
 }
 
-func NewCacheRepo(cfg *config.Config) domain.EventCache {
+func NewCacheRepo(cfg *common.Config) domain.EventCache {
 	return &CacheRepo{
 		client: redis.NewClient(&redis.Options{
 			Addr: cfg.RedisURL,

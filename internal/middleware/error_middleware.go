@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"net/http"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -18,7 +16,7 @@ func (m *Middleware) ErrorHandler(c *fiber.Ctx, err error) error {
 	}
 
 	return c.Status(code).JSON(fiber.Map{
-		"status":  http.StatusBadRequest,
+		"status":  code,
 		"message": "failed",
 		"error":   msg,
 	})

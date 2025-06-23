@@ -49,7 +49,7 @@ func (s *EventService) RegisterEvent(eventID, userID string) error {
 
 // processRegistration handles the actual registration logic
 // TODO: FIX THIS
-func (s *EventService) processRegistration(event *domain.Event, userID string) error {
+func (s *EventService) processRegistration(event *domain.Event, _ string) error {
 	// Check if there are available slots
 	if event.BookedSlots >= event.TotalSlots {
 		return errors.New("no available slots")

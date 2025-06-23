@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"event-registration/internal/common"
 	"os"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func NewZapLogger(cfg *Config) *zap.Logger {
+func NewZapLogger(cfg *common.Config) *zap.Logger {
 	var logger *zap.Logger
 	var core zapcore.Core
 
@@ -48,7 +49,7 @@ func NewZapLogger(cfg *Config) *zap.Logger {
 		core = zapcore.NewTee(core, consoleCore)
 	}
 
-	logger = zap.New(core)
+	logger = zap.New(core, zap.AddCaller())
 
 	defer logger.Sync()
 

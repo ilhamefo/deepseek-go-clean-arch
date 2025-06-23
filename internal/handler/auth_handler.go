@@ -5,6 +5,7 @@ import (
 	"event-registration/internal/core/service"
 	validate "event-registration/internal/infrastructure/validator"
 	"event-registration/internal/request"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,7 +17,10 @@ type AuthHandler struct {
 
 // NewAuthHandler creates a new AuthHandler
 func NewAuthHandler(service *service.AuthService, validator *validate.Validator) *AuthHandler {
-	return &AuthHandler{service: service, validator: validator}
+	return &AuthHandler{
+		service:   service,
+		validator: validator,
+	}
 }
 
 // GetUser godoc
@@ -30,7 +34,7 @@ func NewAuthHandler(service *service.AuthService, validator *validate.Validator)
 func (h *AuthHandler) GetLoginUrl(c *fiber.Ctx) error {
 	url, token, err := h.service.GetLoginUrl()
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
 	c.Cookie(&fiber.Cookie{
@@ -73,10 +77,24 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 
 	request.StateCookie = c.Cookies("oauth_state")
 
-	err := h.service.GoogleHandleCallback(c.Context(), request)
+	accessToken, refreshToken, err := h.service.GoogleHandleCallback(c.Context(), request)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	return responseSuccess(c, "OK")
+	return responseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
+}
+
+// GetUser godoc
+// @Summary Protected Route
+// @Description test protected route
+// @Description Requires authentication
+// @Tags Auth
+// @Param Cookie header string true "Cookie header: access_token=xxxx"
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} User
+// @Router /protected [get]
+func (h *AuthHandler) Protected(c *fiber.Ctx) error {
+	return responseSuccess(c, fiber.Map{"foo": "bar"})
 }

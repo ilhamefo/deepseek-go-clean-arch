@@ -1,6 +1,7 @@
 package database
 
 import (
+	"event-registration/internal/common"
 	"event-registration/internal/config"
 	"event-registration/internal/core/domain"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewGormDB(cfg *config.Config) (*gorm.DB, error) {
+func NewGormDB(cfg *common.Config) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(cfg.PostgresURL), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func NewGormDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-func NewGormPlnMobileDB(cfg *config.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
+func NewGormPlnMobileDB(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
 
 	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.PostgresPlnMobileUser,
@@ -70,7 +71,7 @@ func NewGormPlnMobileDB(cfg *config.Config, loggr *config.ZapLogger) (*gorm.DB, 
 	return db, nil
 }
 
-func NewGormDBAuth(cfg *config.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
+func NewGormDBAuth(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
 
 	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.AuthDBUser,

@@ -1,46 +1,12 @@
 package config
 
 import (
-	"time"
+	"event-registration/internal/common"
 
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	PostgresURL               string        `mapstructure:"POSTGRES_URL"`
-	RedisURL                  string        `mapstructure:"REDIS_URL"`
-	RabbitMQURL               string        `mapstructure:"RABBITMQ_URL"`
-	CacheTimeout              time.Duration `mapstructure:"CACHE_TIMEOUT"`
-	ServerAddress             string        `mapstructure:"SERVER_ADDRESS"`
-	ServerPort                string        `mapstructure:"SERVER_PORT"`
-	ServerExporterAddress     string        `mapstructure:"SERVER_EXPORTER_ADDRESS"`
-	ServerExporterPort        string        `mapstructure:"SERVER_EXPORTER_PORT"`
-	PostgresPlnMobileURL      string        `mapstructure:"POSTGRES_PLN_MOBILE_URL"`
-	PostgresPlnMobileHost     string        `mapstructure:"POSTGRES_PLN_MOBILE_HOST"`
-	PostgresPlnMobilePort     string        `mapstructure:"POSTGRES_PLN_MOBILE_PORT"`
-	PostgresPlnMobileDatabase string        `mapstructure:"POSTGRES_PLN_MOBILE_DATABASE"`
-	PostgresPlnMobileUser     string        `mapstructure:"POSTGRES_PLN_MOBILE_USER"`
-	PostgresPlnMobilePassword string        `mapstructure:"POSTGRES_PLN_MOBILE_PASSWORD"`
-	SshAddress                string        `mapstructure:"SSH_ADDRESS"`
-	SshUsername               string        `mapstructure:"SSH_USERNAME"`
-	SshPassword               string        `mapstructure:"SSH_PASSWORD"`
-	IsProduction              bool          `mapstructure:"IS_PRODUCTION"`
-	GoogleClientSecret        string        `mapstructure:"GOOGLE_CLIENT_SECRET"`
-	GoogleClientID            string        `mapstructure:"GOOGLE_CLIENT_ID"`
-	GoogleRedirectUri         string        `mapstructure:"GOOGLE_REDIRECT_URI"`
-	AuthDB                    string        `mapstructure:"AUTH_DB"`
-	AuthDBSchema              string        `mapstructure:"AUTH_DB_SCHEMA"`
-	AuthDBHost                string        `mapstructure:"AUTH_DB_HOST"`
-	AuthDBPort                string        `mapstructure:"AUTH_DB_PORT"`
-	AuthDBUser                string        `mapstructure:"AUTH_DB_USER"`
-	AuthDBPassword            string        `mapstructure:"AUTH_DB_PASSWORD"`
-	RedisHost                 string        `mapstructure:"REDIS_HOST"`
-	RedisPort                 int           `mapstructure:"REDIS_PORT"`
-	RedisPassword             string        `mapstructure:"REDIS_PASSWORD"`
-	RedisDB                   int           `mapstructure:"REDIS_DB"`
-}
-
-func Load() (*Config, error) {
+func Load() (*common.Config, error) {
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
@@ -49,6 +15,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("REDIS_URL", "localhost:6379")
 	viper.SetDefault("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 	viper.SetDefault("CACHE_TIMEOUT", "5m")
+	viper.SetDefault("REFRESH_JWT_EXPIRATION", 7)
+	viper.SetDefault("ACCESS_JWT_EXPIRATION", 15)
 
 	viper.AutomaticEnv()
 
@@ -58,7 +26,7 @@ func Load() (*Config, error) {
 		}
 	}
 
-	var cfg Config
+	var cfg common.Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
