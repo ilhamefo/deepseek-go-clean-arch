@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gofrs/uuid"
 )
 
 const (
@@ -48,4 +50,12 @@ func NormalizeString(input string) string {
 	input = regexp.MustCompile(`[^A-Z0-9\s-]`).ReplaceAllString(input, "")
 	input = strings.ReplaceAll(input, " ", "_")
 	return input
+}
+
+func GenerateUUID() string {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		return ""
+	}
+	return uuid.String()
 }

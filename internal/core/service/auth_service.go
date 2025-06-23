@@ -9,6 +9,7 @@ import (
 	"errors"
 	"event-registration/internal/common"
 	"event-registration/internal/core/domain"
+	"event-registration/internal/helper"
 	"event-registration/internal/request"
 	"io"
 	"time"
@@ -129,7 +130,7 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 		s.logger.Info("check_is_registered", zap.Any("exists", exists))
 
 		if !exists {
-			user.ID = ""
+			user.ID = helper.GenerateUUID()
 			err = s.register(user)
 			if err != nil {
 				s.logger.Error(
@@ -165,6 +166,7 @@ func (s *AuthService) register(user domain.User) (err error) {
 			"error_generate_password",
 			zap.Error(err),
 		)
+
 		return err
 	}
 

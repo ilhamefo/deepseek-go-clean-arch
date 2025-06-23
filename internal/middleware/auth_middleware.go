@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"event-registration/internal/core/domain"
 	"event-registration/internal/helper"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,7 +33,16 @@ func (m *Middleware) AuthMiddleware() fiber.Handler {
 			})
 		}
 
-		helper.PrettyPrint(claims, "AuthMiddleware claims =================")
+		helper.PrettyPrint(claims, "claims")
+
+		user := domain.User{
+			Email: (*claims)["email"].(string),
+			// Name:  (*claims)["name"].(string),
+			ID: (*claims)["sub"].(string),
+		}
+
+		// set user in context
+		c.Locals("user", user)
 
 		return c.Next()
 	}

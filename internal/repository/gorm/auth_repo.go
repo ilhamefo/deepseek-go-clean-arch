@@ -29,7 +29,6 @@ func (r *AuthRepo) IsRegistered(email string) (isRegistered bool, err error) {
 func (r *AuthRepo) Register(user domain.User) (err error) {
 	err = r.db.
 		Model(&domain.User{}).
-		Omit("ID").
 		Create(&user).
 		Error
 

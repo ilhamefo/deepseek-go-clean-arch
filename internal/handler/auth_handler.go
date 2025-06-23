@@ -96,5 +96,5 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 // @Success 200 {object} User
 // @Router /protected [get]
 func (h *AuthHandler) Protected(c *fiber.Ctx) error {
-	return responseSuccess(c, fiber.Map{"foo": "bar"})
+	return responseSuccess(c, fiber.Map{"foo": "bar", "user": parseUser(c)})
 }
