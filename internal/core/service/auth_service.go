@@ -25,17 +25,19 @@ const (
 	PASSWORD_MIN_LENGTH = 8
 )
 
+var GoogleUserinfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
+
 type AuthService struct {
 	repo              domain.AuthRepository
 	logger            *zap.Logger
-	googleOauthConfig *oauth2.Config
+	GoogleOauthConfig *oauth2.Config
 	config            *common.Config
 }
 
 func NewAuthService(repo domain.AuthRepository, logger *zap.Logger, googleConfig *oauth2.Config, config *common.Config) *AuthService {
 	return &AuthService{
 		repo:              repo,
-		googleOauthConfig: googleConfig,
+		GoogleOauthConfig: googleConfig,
 		logger:            logger,
 		config:            config,
 	}
@@ -52,7 +54,7 @@ func (s *AuthService) GetLoginUrl() (url, token string, err error) {
 		return "", "", err
 	}
 
-	return s.googleOauthConfig.AuthCodeURL(token, oauth2.AccessTypeOffline), token, nil
+	return s.GoogleOauthConfig.AuthCodeURL(token, oauth2.AccessTypeOffline), token, nil
 }
 
 func (s *AuthService) generateStateToken() (string, error) {
@@ -83,7 +85,7 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 	// 	return accessToken, refreshToken, errors.New("error_invalid_state")
 	// }
 
-	token, err := s.googleOauthConfig.Exchange(ctx, req.Code)
+	token, err := s.GoogleOauthConfig.Exchange(ctx, req.Code)
 	if err != nil {
 		s.logger.Error(
 			"error_exchange_token",
@@ -92,8 +94,8 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 		return accessToken, refreshToken, err
 	}
 
-	client := s.googleOauthConfig.Client(ctx, token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	client := s.GoogleOauthConfig.Client(ctx, token)
+	resp, err := client.Get(GoogleUserinfoURL)
 	if err != nil {
 		s.logger.Error(
 			"error_get_client",
@@ -131,7 +133,7 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 
 		if !exists {
 			user.ID = helper.GenerateUUID()
-			err = s.register(user)
+			err = s.Register(user)
 			if err != nil {
 				s.logger.Error(
 					"error_registered",
@@ -141,7 +143,7 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 			}
 		}
 
-		accessToken, refreshToken, err = s.generateToken(&user)
+		accessToken, refreshToken, err = s.GenerateToken(&user)
 		if err != nil {
 			s.logger.Error("error_create_token", zap.Error(err))
 			return accessToken, refreshToken, errors.New("invalid_credentials")
@@ -153,14 +155,14 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 	return accessToken, refreshToken, err
 }
 
-func (s *AuthService) register(user domain.User) (err error) {
+func (s *AuthService) Register(user domain.User) (err error) {
 	var now time.Time = time.Now()
 
 	if user.VerifiedEmail {
 		user.EmailVerifiedAt = &now
 	}
 
-	password, err := s.generateSafePassword(PASSWORD_LENGTH)
+	password, err := s.GenerateSafePassword(PASSWORD_LENGTH)
 	if err != nil {
 		s.logger.Error(
 			"error_generate_password",
@@ -175,7 +177,7 @@ func (s *AuthService) register(user domain.User) (err error) {
 	return s.repo.Register(user)
 }
 
-func (s *AuthService) generateSafePassword(length int) (string, error) {
+func (s *AuthService) GenerateSafePassword(length int) (string, error) {
 	if length < PASSWORD_MIN_LENGTH {
 		length = PASSWORD_MIN_LENGTH
 	}
@@ -197,7 +199,7 @@ func (s *AuthService) generateSafePassword(length int) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func (s *AuthService) login(ctx context.Context, req *request.LoginRequest) (accessToken, refreshToken string, err error) {
+func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (accessToken, refreshToken string, err error) {
 	user, err := s.repo.FindByEmail(req.Email)
 	if err != nil {
 		s.logger.Error("error_get_user_by_email", zap.Error(err))
@@ -210,7 +212,7 @@ func (s *AuthService) login(ctx context.Context, req *request.LoginRequest) (acc
 		return accessToken, refreshToken, errors.New("invalid_credentials")
 	}
 
-	accessToken, refreshToken, err = s.generateToken(user)
+	accessToken, refreshToken, err = s.GenerateToken(user)
 	if err != nil {
 		s.logger.Error("error_create_token", zap.Error(err))
 		return accessToken, refreshToken, errors.New("invalid_credentials")
@@ -219,14 +221,14 @@ func (s *AuthService) login(ctx context.Context, req *request.LoginRequest) (acc
 	return accessToken, refreshToken, nil
 }
 
-func (s *AuthService) generateToken(user *domain.User) (accessToken, refreshToken string, err error) {
-	accessToken, err = s.generateAccessTokenJWT(user)
+func (s *AuthService) GenerateToken(user *domain.User) (accessToken, refreshToken string, err error) {
+	accessToken, err = s.GenerateAccessTokenJWT(user)
 	if err != nil {
 		s.logger.Error("error_generate_access_token_jwt", zap.Error(err))
 		return accessToken, refreshToken, err
 	}
 
-	refreshToken, err = s.generateRefreshTokenJWT(user)
+	refreshToken, err = s.GenerateRefreshTokenJWT(user)
 	if err != nil {
 		s.logger.Error("error_generate_refresh_token_jwt", zap.Error(err))
 		return accessToken, refreshToken, err
@@ -235,7 +237,7 @@ func (s *AuthService) generateToken(user *domain.User) (accessToken, refreshToke
 	return accessToken, refreshToken, err
 }
 
-func (s *AuthService) generateAccessTokenJWT(user *domain.User) (string, error) {
+func (s *AuthService) GenerateAccessTokenJWT(user *domain.User) (string, error) {
 	claims := map[string]any{
 		"sub":   user.ID,
 		"email": user.Email,
@@ -246,7 +248,7 @@ func (s *AuthService) generateAccessTokenJWT(user *domain.User) (string, error) 
 	return token.SignedString([]byte(s.config.JwtSecret))
 }
 
-func (s *AuthService) generateRefreshTokenJWT(user *domain.User) (string, error) {
+func (s *AuthService) GenerateRefreshTokenJWT(user *domain.User) (string, error) {
 
 	claims := map[string]interface{}{
 		"sub":   user.ID,
