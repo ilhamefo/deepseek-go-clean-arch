@@ -1,6 +1,6 @@
 package domain
 
-import "event-registration/internal/request"
+import "event-registration/internal/common/request"
 
 type Transaksi struct {
 	ID             string `json:"id" gorm:"column:id"`

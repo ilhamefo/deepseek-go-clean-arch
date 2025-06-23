@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"event-registration/internal/constant"
+	"event-registration/internal/common/constant"
+	"event-registration/internal/common/request"
 	"event-registration/internal/core/service"
 	validate "event-registration/internal/infrastructure/validator"
-	"event-registration/internal/request"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"

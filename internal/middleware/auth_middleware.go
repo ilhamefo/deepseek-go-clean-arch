@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"event-registration/internal/common/helper"
 	"event-registration/internal/core/domain"
-	"event-registration/internal/helper"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"

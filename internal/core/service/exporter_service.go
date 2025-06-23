@@ -3,9 +3,9 @@ package service
 import (
 	"archive/tar"
 	"compress/gzip"
+	"event-registration/internal/common/helper"
+	"event-registration/internal/common/request"
 	"event-registration/internal/core/domain"
-	"event-registration/internal/helper"
-	"event-registration/internal/request"
 	"fmt"
 	"io"
 	"os"

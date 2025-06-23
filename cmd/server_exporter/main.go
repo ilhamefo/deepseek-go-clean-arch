@@ -37,7 +37,7 @@ func main() {
 	app := fx.New(
 
 		fx.Provide(
-			config.Load,
+			common.Load,
 			config.NewLogLevel,
 			config.NewZapLogger,
 			config.NewZapGormLogger,

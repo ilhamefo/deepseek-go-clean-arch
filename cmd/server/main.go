@@ -33,7 +33,7 @@ func main() {
 	app := fx.New(
 		// Provide dependencies
 		fx.Provide(
-			config.Load, // config.Load should be the first to ensure config is available for other components
+			common.Load, // config.Load should be the first to ensure config is available for other components
 			config.NewLogLevel,
 			config.NewZapLogger,
 			config.NewZapGormLogger,
