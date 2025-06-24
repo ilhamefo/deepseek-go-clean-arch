@@ -10,7 +10,9 @@ type AuthRepo struct {
 	db *gorm.DB
 }
 
-func NewAuthRepo(db *gorm.DB) domain.AuthRepository {
+func NewAuthRepo(
+	db *gorm.DB, // `name:"authDB"`
+) domain.AuthRepository {
 	return &AuthRepo{db: db}
 }
 

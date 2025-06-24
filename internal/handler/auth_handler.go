@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"event-registration/internal/common"
 	"event-registration/internal/common/constant"
 	"event-registration/internal/common/request"
 	"event-registration/internal/core/service"
@@ -13,13 +14,15 @@ import (
 type AuthHandler struct {
 	service   *service.AuthService
 	validator *validate.Validator
+	handler   *common.Handler
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(service *service.AuthService, validator *validate.Validator) *AuthHandler {
+func NewAuthHandler(service *service.AuthService, validator *validate.Validator, handler *common.Handler) *AuthHandler {
 	return &AuthHandler{
 		service:   service,
 		validator: validator,
+		handler:   handler,
 	}
 }
 
@@ -46,7 +49,7 @@ func (h *AuthHandler) GetLoginUrl(c *fiber.Ctx) error {
 		SameSite: "Strict",
 	})
 
-	return responseSuccess(c, fiber.Map{"url": url})
+	return h.handler.ResponseSuccess(c, fiber.Map{"url": url})
 }
 
 // GetUser godoc
@@ -82,7 +85,7 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	return responseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
+	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
 }
 
 // GetUser godoc
@@ -96,5 +99,5 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 // @Success 200 {object} User
 // @Router /protected [get]
 func (h *AuthHandler) Protected(c *fiber.Ctx) error {
-	return responseSuccess(c, fiber.Map{"foo": "bar", "user": parseUser(c)})
+	return h.handler.ResponseSuccess(c, fiber.Map{"foo": "bar", "user": h.handler.ParseUser(c)})
 }
