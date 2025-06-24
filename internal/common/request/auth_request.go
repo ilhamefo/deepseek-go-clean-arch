@@ -1,8 +1,8 @@
 package request
 
 type GoogleCallbackRequest struct {
-	Code        string `json:"code" query:"code" validate:"required"`
-	State       string `json:"state" query:"state" validate:"required"`
+	Code        string `json:"code" query:"code" form:"code" validate:"required"`
+	State       string `json:"state" query:"state" form:"state" validate:"required"`
 	StateCookie string
 }
 

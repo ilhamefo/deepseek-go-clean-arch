@@ -5,24 +5,21 @@ import (
 	"event-registration/internal/common/constant"
 	"event-registration/internal/common/request"
 	"event-registration/internal/core/service"
-	validate "event-registration/internal/infrastructure/validator"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type AuthHandler struct {
-	service   *service.AuthService
-	validator *validate.Validator
-	handler   *common.Handler
+	service *service.AuthService
+	handler *common.Handler
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(service *service.AuthService, validator *validate.Validator, handler *common.Handler) *AuthHandler {
+func NewAuthHandler(service *service.AuthService, handler *common.Handler) *AuthHandler {
 	return &AuthHandler{
-		service:   service,
-		validator: validator,
-		handler:   handler,
+		service: service,
+		handler: handler,
 	}
 }
 
@@ -67,15 +64,11 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 	request := new(request.GoogleCallbackRequest)
 
 	if err := c.QueryParser(request); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": constant.INVALID_REQUEST_BODY,
-		})
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
 	}
 
-	if err := h.validator.Struct(request); err != nil {
-		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"error_validations": h.validator.ValidationErrors(err),
-		})
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusUnprocessableEntity, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
 	}
 
 	request.StateCookie = c.Cookies("oauth_state")
