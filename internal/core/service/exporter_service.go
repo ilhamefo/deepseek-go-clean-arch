@@ -469,6 +469,10 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 	return files, nil
 }
 
+var pelangganHeaders = []string{
+	"No.", "ID PELANGGAN", "NAMA", "CONSUMER NAME", "TIPE ENERGI", "KWH", "ALAMAT", "METER NO", "TIPE METER", "UNIT UPI", "NAMA UNIT UPI", "UNIT AP", "NAMA UNIT AP", "UNIT UP", "NAMA UNIT UP", "CREATED AT",
+}
+
 func (s *ExporterService) generateXlsxPelanggan(res []*domain.Pelanggan, filename string) (files []string, err error) {
 	sheetName := "Rekap Pelanggan"
 	batchSize := 25_000 * 6
@@ -488,141 +492,97 @@ func (s *ExporterService) generateXlsxPelanggan(res []*domain.Pelanggan, filenam
 			end = totalRows
 		}
 
-		// Create a new Excel file for each batch
-		f := excelize.NewFile()
-
-		defer func() {
-			if err := f.Close(); err != nil {
-				s.logger.Error(
-					"error_create_new_file",
-					zap.Error(err),
-				)
-			}
-		}()
-
-		err = f.SetSheetName("Sheet1", sheetName)
+		batchFilename, err := s.createPelangganBatchFile(res[start:end], filename, batch, sheetName)
 		if err != nil {
-			s.logger.Error(
-				"create_sheet",
-				zap.Error(err),
-			)
 			return files, err
 		}
-
-		sw, err := f.NewStreamWriter(sheetName)
-		if err != nil {
-			s.logger.Error(
-				"error_create_stream_writer",
-				zap.Error(err),
-			)
-			return files, err
-		}
-
-		err = sw.SetColWidth(2, 15, 26)
-		if err != nil {
-			s.logger.Error(
-				"error_set_col",
-				zap.Error(err),
-			)
-			return files, err
-		}
-
-		err = s.setHeaders(sw, f, []string{"No.",
-			"ID PELANGGAN",
-			"NAMA",
-			"CONSUMER NAME",
-			"TIPE ENERGI",
-			"KWH",
-			"ALAMAT",
-			"METER NO",
-			"TIPE METER",
-			"UNIT UPI",
-			"NAMA UNIT UPI",
-			"UNIT AP",
-			"NAMA UNIT AP",
-			"UNIT UP",
-			"NAMA UNIT UP",
-			"CREATED AT"})
-		if err != nil {
-			s.logger.Error(
-				"error_set_error",
-				zap.Error(err),
-			)
-			return files, err
-		}
-
-		s.logger.Info(
-			"length_of_batch",
-			zap.Int("rows", end-start),
-		)
-
-		// Write rows for the current batch
-		for i, data := range res[start:end] {
-			rowIndex := i + 1
-
-			cell, err := excelize.CoordinatesToCellName(1, rowIndex+1)
-			if err != nil {
-				s.logger.Error(
-					"error_create_coordinate",
-					zap.Error(err),
-				)
-				return files, err
-			}
-
-			if err := sw.SetRow(cell, []interface{}{
-				rowIndex,
-				data.IDPel,
-				data.Name,
-				data.ConsumerName,
-				data.EnergyType,
-				data.KWH,
-				data.Address,
-				data.MeterNo,
-				data.MeterType,
-				data.UnitUpi,
-				data.NamaUnitUpi,
-				data.UnitAp,
-				data.NamaUnitAp,
-				data.UnitUp,
-				data.NamaUnitUp,
-				data.CreatedAt,
-			}); err != nil {
-				s.logger.Error(
-					"error_set_row",
-					zap.Error(err),
-				)
-				return files, fmt.Errorf("error set row : %s", err.Error())
-			}
-		}
-
-		if err = sw.Flush(); err != nil {
-			s.logger.Error(
-				"error_flush_file",
-				zap.Error(err),
-			)
-			return files, err
-		}
-
-		// Save the file with a batch-specific name
-		batchFilename := fmt.Sprintf("files/REKAP_PELANGGAN_EXPORT_%s_PART_%d.xlsx", filename, batch+1)
-		if err := f.SaveAs(batchFilename); err != nil {
-			s.logger.Error(
-				"error_save_excel_file",
-				zap.Error(err),
-			)
-			return files, err
-		}
-
-		s.logger.Info(
-			"batch_saved",
-			zap.Int("batch", batch+1),
-			zap.String("to", batchFilename),
-		)
-
 		files = append(files, batchFilename)
 	}
 
 	return files, nil
+}
+
+func (s *ExporterService) createPelangganBatchFile(batch []*domain.Pelanggan, filename string, batchNum int, sheetName string) (string, error) {
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			s.logger.Error("error_create_new_file", zap.Error(err))
+		}
+	}()
+
+	if err := f.SetSheetName("Sheet1", sheetName); err != nil {
+		s.logger.Error("create_sheet", zap.Error(err))
+		return "", err
+	}
+
+	sw, err := f.NewStreamWriter(sheetName)
+	if err != nil {
+		s.logger.Error("error_create_stream_writer", zap.Error(err))
+		return "", err
+	}
+
+	if err := sw.SetColWidth(2, 15, 26); err != nil {
+		s.logger.Error("error_set_col", zap.Error(err))
+		return "", err
+	}
+
+	if err := s.setHeaders(sw, f, pelangganHeaders); err != nil {
+		s.logger.Error("error_set_error", zap.Error(err))
+		return "", err
+	}
+
+	s.logger.Info("length_of_batch", zap.Int("rows", len(batch)))
+
+	if err := s.writePelangganRows(sw, batch); err != nil {
+		return "", err
+	}
+
+	if err := sw.Flush(); err != nil {
+		s.logger.Error("error_flush_file", zap.Error(err))
+		return "", err
+	}
+
+	batchFilename := fmt.Sprintf("files/REKAP_PELANGGAN_EXPORT_%s_PART_%d.xlsx", filename, batchNum+1)
+	if err := f.SaveAs(batchFilename); err != nil {
+		s.logger.Error("error_save_excel_file", zap.Error(err))
+		return "", err
+	}
+
+	s.logger.Info("batch_saved", zap.Int("batch", batchNum+1), zap.String("to", batchFilename))
+	return batchFilename, nil
+}
+
+func (s *ExporterService) writePelangganRows(sw *excelize.StreamWriter, batch []*domain.Pelanggan) error {
+	for i, data := range batch {
+		rowIndex := i + 1
+		cell, err := excelize.CoordinatesToCellName(1, rowIndex+1)
+		if err != nil {
+			s.logger.Error("error_create_coordinate", zap.Error(err))
+			return err
+		}
+		if err := sw.SetRow(cell, []interface{}{
+			rowIndex,
+			data.IDPel,
+			data.Name,
+			data.ConsumerName,
+			data.EnergyType,
+			data.KWH,
+			data.Address,
+			data.MeterNo,
+			data.MeterType,
+			data.UnitUpi,
+			data.NamaUnitUpi,
+			data.UnitAp,
+			data.NamaUnitAp,
+			data.UnitUp,
+			data.NamaUnitUp,
+			data.CreatedAt,
+		}); err != nil {
+			s.logger.Error("error_set_row", zap.Error(err))
+			return fmt.Errorf("error set row : %s", err.Error())
+		}
+	}
+	return nil
 }
 
 func (s *ExporterService) compressFiles(files []string, outputFile string) error {
