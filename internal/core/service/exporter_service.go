@@ -437,7 +437,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 		path := fmt.Sprintf("files/%s", filename)
 
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			errMakeDir := os.Mkdir(path, os.ModePerm)
+			errMakeDir := os.Mkdir(path, 0o750) // Secure permissions: owner=rwx, group=rx
 			if errMakeDir != nil {
 				s.logger.Error(
 					"error_make_dir",
@@ -631,6 +631,18 @@ func (s *ExporterService) compressFiles(files []string, outputFile string) error
 		zap.Int("file_count", len(files)),
 		zap.Strings("files", files),
 	)
+
+	// Security: Prevent path traversal and absolute paths
+	if strings.Contains(outputFile, "..") || strings.HasPrefix(outputFile, "/") || strings.HasPrefix(outputFile, "\\") {
+		s.logger.Error("invalid_output_file_path", zap.String("outputFile", outputFile))
+		return fmt.Errorf("invalid output file path: %s", outputFile)
+	}
+
+	// Only allow output in the 'files/' directory
+	if !strings.HasPrefix(outputFile, "files/") && !strings.HasPrefix(outputFile, "files\\") {
+		s.logger.Error("output_file_must_be_in_files_dir", zap.String("outputFile", outputFile))
+		return fmt.Errorf("output file must be in 'files/' directory: %s", outputFile)
+	}
 
 	outFile, err := os.Create(outputFile)
 	if err != nil {

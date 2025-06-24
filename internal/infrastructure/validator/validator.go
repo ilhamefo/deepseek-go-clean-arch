@@ -48,7 +48,10 @@ func (v *Validator) ValidationErrors(err error) (errMsg map[string]string) {
 func (v *Validator) getErrorMsg(fe validator.FieldError) string {
 	trans := v.translator
 
-	en_translations.RegisterDefaultTranslations(v.Validate, trans)
+	err := en_translations.RegisterDefaultTranslations(v.Validate, trans)
+	if err != nil {
+		panic("failed to register translations: " + err.Error())
+	}
 
 	return fe.Translate(trans)
 }
