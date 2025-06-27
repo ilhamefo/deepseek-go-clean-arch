@@ -18,6 +18,7 @@ import (
 
 const (
 	BATCH_SIZE = 50000
+	filesDir   = "files/"
 )
 
 var HeaderStyle excelize.Style = excelize.Style{
@@ -102,7 +103,7 @@ func (s *ExporterService) ExportRekapTransaksi(req *request.RekapRequest) (err e
 		return err
 	}
 
-	return s.compressFiles(files, "files/"+filename+".tar.gz")
+	return s.compressFiles(files, filesDir+filename+".tar.gz")
 }
 
 func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (err error) {
@@ -306,7 +307,7 @@ func (s *ExporterService) ExportRekapPelanggan(req *request.RekapRequest) (err e
 		return err
 	}
 
-	return s.compressFiles(files, "files/"+filename+".tar.gz")
+	return s.compressFiles(files, filesDir+filename+".tar.gz")
 }
 
 func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string) (files []string, err error) {
@@ -434,7 +435,7 @@ func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string)
 			return files, err
 		}
 
-		path := fmt.Sprintf("files/%s", filename)
+		path := fmt.Sprintf("%s%s", filesDir, filename)
 
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			errMakeDir := os.Mkdir(path, 0o750) // Secure permissions: owner=rwx, group=rx

@@ -2,6 +2,7 @@ package config
 
 import (
 	"event-registration/internal/common"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -12,7 +13,7 @@ func NewGoogleOAuthConfig(cfg *common.Config) *oauth2.Config {
 		RedirectURL:  cfg.GoogleRedirectUri,
 		ClientID:     cfg.GoogleClientID,
 		ClientSecret: cfg.GoogleClientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
+		Scopes:       strings.Split(cfg.GoogleOAuthScope, ","),
 		Endpoint:     google.Endpoint,
 	}
 }

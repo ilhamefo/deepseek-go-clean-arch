@@ -60,7 +60,11 @@ func NewZapLoggerMiddleware(logger *zap.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 
-		ip := c.IP()
+		ip := c.Get("CF-Connecting-IP")
+		if ip == "" {
+			ip = c.IP()
+		}
+
 		method := c.Method()
 		path := c.OriginalURL()
 		body := c.Body()

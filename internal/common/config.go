@@ -28,6 +28,7 @@ type Config struct {
 	GoogleClientSecret        string        `mapstructure:"GOOGLE_CLIENT_SECRET"`
 	GoogleClientID            string        `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleRedirectUri         string        `mapstructure:"GOOGLE_REDIRECT_URI"`
+	GoogleOAuthScope          string        `mapstructure:"GOOGLE_OAUTH_SCOPE"`
 	AuthDB                    string        `mapstructure:"AUTH_DB"`
 	AuthDBSchema              string        `mapstructure:"AUTH_DB_SCHEMA"`
 	AuthDBHost                string        `mapstructure:"AUTH_DB_HOST"`
