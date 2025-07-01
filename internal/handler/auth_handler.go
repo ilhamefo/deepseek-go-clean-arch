@@ -29,7 +29,7 @@ func NewAuthHandler(service *service.AuthService, handler *common.Handler) *Auth
 // @Tags Auth
 // @Accept  json
 // @Produce  json
-// @Success 200 {object} User
+// @Success 200 {object} domain.User
 // @Router /auth/google/login-url [get]
 func (h *AuthHandler) GetLoginUrl(c *fiber.Ctx) error {
 	url, token, err := h.service.GetLoginUrl()
@@ -58,7 +58,7 @@ func (h *AuthHandler) GetLoginUrl(c *fiber.Ctx) error {
 // @Param code query string true "ABCDE"
 // @Param state query string true "ABCDE"
 // @Produce  json
-// @Success 200 {object} User
+// @Success 200 {object} domain.User
 // @Router /auth/google/callback [get]
 func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 	request := new(request.GoogleCallbackRequest)
@@ -78,6 +78,77 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
+	h.createCookies(c, accessToken, refreshToken)
+
+	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
+}
+
+// GetUser godoc
+// @Summary Protected Route
+// @Description test protected route
+// @Description Requires authentication
+// @Tags Auth
+// @Param Cookie header string true "Cookie header: access_token=xxxx"
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} domain.User
+// @Router /protected [get]
+func (h *AuthHandler) Protected(c *fiber.Ctx) error {
+	return h.handler.ResponseSuccess(c, fiber.Map{"user": h.handler.ParseUser(c)})
+}
+
+// RefreshToken godoc
+// @Summary Refresh Access Token
+// @Description Refresh access token using refresh token
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} domain.User
+// @Router /auth/refresh-token [post]
+func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
+	user := h.handler.ParseUser(c)
+
+	accessToken, refreshToken, err := h.service.GenerateToken(&user)
+	if err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "Failed to generate access token", nil)
+	}
+
+	h.createCookies(c, accessToken, refreshToken)
+
+	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
+}
+
+// Login godoc
+// @Summary Login
+// @Description Login with email and password
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Param request body request.LoginRequest false "..."
+// @Success 200 {object} domain.User
+// @Router /auth/login [post]
+func (h *AuthHandler) Login(c *fiber.Ctx) error {
+	request := new(request.LoginRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusUnprocessableEntity, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	accessToken, refreshToken, err := h.service.Login(c.Context(), request)
+	if err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "login_failed", err.Error())
+	}
+
+	h.createCookies(c, accessToken, refreshToken)
+
+	return h.handler.ResponseSuccess(c, nil)
+}
+
+func (h *AuthHandler) createCookies(c *fiber.Ctx, accessToken, refreshToken string) {
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
@@ -95,48 +166,4 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 		Secure:   true,
 		SameSite: "Strict",
 	})
-
-	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
-}
-
-// GetUser godoc
-// @Summary Protected Route
-// @Description test protected route
-// @Description Requires authentication
-// @Tags Auth
-// @Param Cookie header string true "Cookie header: access_token=xxxx"
-// @Accept  json
-// @Produce  json
-// @Success 200 {object} User
-// @Router /protected [get]
-func (h *AuthHandler) Protected(c *fiber.Ctx) error {
-	return h.handler.ResponseSuccess(c, fiber.Map{"user": h.handler.ParseUser(c)})
-}
-
-// RefreshToken godoc
-// @Summary Refresh Access Token
-// @Description Refresh access token using refresh token
-// @Tags Auth
-// @Accept  json
-// @Produce  json
-// @Success 200 {object} User
-// @Router /auth/refresh-token [post]
-func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
-	user := h.handler.ParseUser(c)
-
-	accessToken, refreshToken, err := h.service.GenerateToken(&user)
-	if err != nil {
-		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "Failed to generate access token", nil)
-	}
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		MaxAge:   60 * 15, // 5 mins
-		HTTPOnly: true,    // set it to true in production
-		Secure:   true,
-		SameSite: "Strict",
-	})
-
-	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
 }

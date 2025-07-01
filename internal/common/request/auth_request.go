@@ -7,6 +7,6 @@ type GoogleCallbackRequest struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" query:"email" validate:"required"`
-	Password string `json:"password" query:"password" validate:"required"`
+	Email    string `json:"email" query:"email" form:"email" validate:"required" example:"ilham@oninyon.com"`
+	Password string `json:"password" query:"password" form:"password" validate:"required" example:"password"`
 }
