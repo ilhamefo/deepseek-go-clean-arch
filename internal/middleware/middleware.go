@@ -3,11 +3,13 @@ package middleware
 import "event-registration/internal/common"
 
 type Middleware struct {
-	cfg *common.Config
+	cfg     *common.Config
+	handler *common.Handler
 }
 
-func NewMiddleware(config *common.Config) *Middleware {
+func NewMiddleware(config *common.Config, handler *common.Handler) *Middleware {
 	return &Middleware{
-		cfg: config,
+		cfg:     config,
+		handler: handler,
 	}
 }

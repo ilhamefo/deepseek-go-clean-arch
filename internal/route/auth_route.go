@@ -16,9 +16,12 @@ func RegisterAuthRoutes(app *fiber.App, authHandler *handler.AuthHandler, m *mid
 	}))
 
 	auth := app.Group("/auth")
+	auth.Group("/login")
+
 	google := auth.Group("/google")
 	google.Get("/login-url", authHandler.GetLoginUrl)
 	google.Get("/callback", authHandler.GoogleHandleCallback)
+	auth.Get("/refresh-token", m.VerifyRefreshToken(), authHandler.RefreshToken)
 
-	app.Get("/protected", m.AuthMiddleware(), authHandler.Protected)
+	app.Get("/me", m.AuthMiddleware(), authHandler.Protected)
 }

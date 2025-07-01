@@ -11,6 +11,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -41,7 +42,8 @@ func (s *AuthRepoTestSuite) SetupTest() {
 	db, mock, cleanup := setupMockDB(s.T())
 	s.db = db
 	s.mock = mock
-	s.repo = repo.NewAuthRepo(db).(*repo.AuthRepo)
+	logger := zap.NewNop()
+	s.repo = repo.NewAuthRepo(db, logger).(*repo.AuthRepo)
 	s.cleanup = cleanup
 }
 

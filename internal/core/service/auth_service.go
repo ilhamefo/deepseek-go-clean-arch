@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"event-registration/internal/common"
+	"event-registration/internal/common/constant"
 	"event-registration/internal/common/helper"
 	"event-registration/internal/common/request"
 	"event-registration/internal/core/domain"
@@ -73,17 +74,17 @@ func (s *AuthService) generateStateToken() (string, error) {
 }
 
 func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.GoogleCallbackRequest) (accessToken, refreshToken string, err error) {
-	var user domain.User
+	var user *domain.User
 
 	// check state
-	// if req.State != req.StateCookie {
-	// 	s.logger.Error(
-	// 		"error_invalid_state",
-	// 		zap.Error(err),
-	// 	)
+	if req.State != req.StateCookie {
+		s.logger.Error(
+			"error_invalid_state",
+			zap.Error(err),
+		)
 
-	// 	return accessToken, refreshToken, errors.New("error_invalid_state")
-	// }
+		return accessToken, refreshToken, errors.New("error_invalid_state")
+	}
 
 	token, err := s.GoogleOauthConfig.Exchange(ctx, req.Code)
 	if err != nil {
@@ -114,42 +115,51 @@ func (s *AuthService) GoogleHandleCallback(ctx context.Context, req *request.Goo
 		return accessToken, refreshToken, err
 	}
 
-	if userInfo != nil {
-		if err := json.Unmarshal(userInfo, &user); err != nil {
-			s.logger.Error("error_unmarshal_user_info", zap.Error(err))
-			return accessToken, refreshToken, err
-		}
+	if userInfo == nil {
+		return accessToken, refreshToken, errors.New("error_get_user_info")
+	}
 
-		exists, err := s.repo.IsRegistered(user.Email)
+	if err := json.Unmarshal(userInfo, &user); err != nil {
+		s.logger.Error("error_unmarshal_user_info", zap.Error(err))
+		return accessToken, refreshToken, err
+	}
+
+	exists, err := s.repo.IsRegistered(user.Email)
+	if err != nil {
+		s.logger.Error(
+			"error_check_is_registered",
+			zap.Error(err),
+		)
+		return accessToken, refreshToken, err
+	}
+
+	s.logger.Info("check_is_registered", zap.Any("exists", exists))
+
+	if !exists {
+		user.ID = helper.GenerateUUID()
+		err = s.Register(*user)
 		if err != nil {
 			s.logger.Error(
-				"error_check_is_registered",
+				"error_registered",
 				zap.Error(err),
 			)
 			return accessToken, refreshToken, err
 		}
-
-		s.logger.Info("check_is_registered", zap.Any("exists", exists))
-
-		if !exists {
-			user.ID = helper.GenerateUUID()
-			err = s.Register(user)
-			if err != nil {
-				s.logger.Error(
-					"error_registered",
-					zap.Error(err),
-				)
-				return accessToken, refreshToken, err
-			}
-		}
-
-		accessToken, refreshToken, err = s.GenerateToken(&user)
+	} else {
+		user, err = s.repo.FindByEmail(user.Email)
 		if err != nil {
-			s.logger.Error("error_create_token", zap.Error(err))
-			return accessToken, refreshToken, errors.New("invalid_credentials")
+			s.logger.Error(
+				"error_get_user_by_email",
+				zap.Error(err),
+			)
+			return accessToken, refreshToken, err
 		}
+	}
 
-		return accessToken, refreshToken, err
+	accessToken, refreshToken, err = s.GenerateToken(user)
+	if err != nil {
+		s.logger.Error("error_create_token", zap.Error(err))
+		return accessToken, refreshToken, errors.New("invalid_credentials")
 	}
 
 	return accessToken, refreshToken, err
@@ -242,6 +252,7 @@ func (s *AuthService) GenerateAccessTokenJWT(user *domain.User) (string, error) 
 		"sub":   user.ID,
 		"email": user.Email,
 		"exp":   time.Now().Add(time.Duration(s.config.AccessJwtExpiration) * time.Minute).Unix(),
+		"type":  constant.ACCESS_TOKEN,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))
@@ -250,10 +261,11 @@ func (s *AuthService) GenerateAccessTokenJWT(user *domain.User) (string, error) 
 
 func (s *AuthService) GenerateRefreshTokenJWT(user *domain.User) (string, error) {
 
-	claims := map[string]interface{}{
+	claims := map[string]any{
 		"sub":   user.ID,
 		"email": user.Email,
 		"exp":   time.Now().Add(time.Duration(s.config.RefreshTokenExpiration) * 24 * time.Hour).Unix(),
+		"type":  constant.REFRESH_TOKEN,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))

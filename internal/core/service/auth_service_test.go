@@ -41,8 +41,8 @@ func (s *AuthServiceIntegrationSuite) SetupTest() {
 	s.db = db
 	s.mock = mock
 	s.cleanup = cleanup
-	s.repo = gormrepo.NewAuthRepo(db)
 	s.logger = zap.NewNop()
+	s.repo = gormrepo.NewAuthRepo(db, s.logger)
 	s.google = &oauth2.Config{ClientID: "test", ClientSecret: "test", RedirectURL: "http://localhost"}
 	s.config = &common.Config{JwtSecret: "secret", AccessJwtExpiration: 10, RefreshTokenExpiration: 7}
 	s.service = service.NewAuthService(s.repo, s.logger, s.google, s.config)

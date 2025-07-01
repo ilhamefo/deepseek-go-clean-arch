@@ -22,7 +22,12 @@ func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage) *fiber.App
 		ErrorHandler:  m.ErrorHandler,
 	})
 
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://127.0.0.1:3000",
+		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowCredentials: true,
+		AllowMethods:     "GET,POST",
+	}))
 	app.Use(compress.New())
 	app.Use(helmet.New())
 	app.Use(limiter.New(limiter.Config{

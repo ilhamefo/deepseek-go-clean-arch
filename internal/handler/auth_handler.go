@@ -78,6 +78,24 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		MaxAge:   60 * 15, // 15 mins
+		HTTPOnly: true,    // set it to true in production
+		Secure:   true,
+		SameSite: "Strict",
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		MaxAge:   60 * 60 * 24 * 7, // 1 week
+		HTTPOnly: true,             // set it to true in production
+		Secure:   true,
+		SameSite: "Strict",
+	})
+
 	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
 }
 
@@ -92,5 +110,33 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 // @Success 200 {object} User
 // @Router /protected [get]
 func (h *AuthHandler) Protected(c *fiber.Ctx) error {
-	return h.handler.ResponseSuccess(c, fiber.Map{"foo": "bar", "user": h.handler.ParseUser(c)})
+	return h.handler.ResponseSuccess(c, fiber.Map{"user": h.handler.ParseUser(c)})
+}
+
+// RefreshToken godoc
+// @Summary Refresh Access Token
+// @Description Refresh access token using refresh token
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} User
+// @Router /auth/refresh-token [post]
+func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
+	user := h.handler.ParseUser(c)
+
+	accessToken, refreshToken, err := h.service.GenerateToken(&user)
+	if err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "Failed to generate access token", nil)
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		MaxAge:   60 * 15, // 5 mins
+		HTTPOnly: true,    // set it to true in production
+		Secure:   true,
+		SameSite: "Strict",
+	})
+
+	return h.handler.ResponseSuccess(c, fiber.Map{"access_token": accessToken, "refresh_token": refreshToken})
 }

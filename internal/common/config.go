@@ -54,7 +54,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 	viper.SetDefault("CACHE_TIMEOUT", "5m")
 	viper.SetDefault("REFRESH_JWT_EXPIRATION", 7)
-	viper.SetDefault("ACCESS_JWT_EXPIRATION", 15)
+	viper.SetDefault("ACCESS_JWT_EXPIRATION", 1)
 
 	viper.AutomaticEnv()
 
