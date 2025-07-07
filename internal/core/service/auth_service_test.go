@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"event-registration/internal/common"
 	"event-registration/internal/common/request"
@@ -15,6 +16,7 @@ import (
 	gormrepo "event-registration/internal/repository/gorm"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -23,17 +25,53 @@ import (
 	"gorm.io/gorm"
 )
 
+// Mock SessionService interface for testing
+type SessionServiceInterface interface {
+	CreateSession(ctx context.Context, userID, email string, refreshToken string, expiration time.Duration) error
+	GetSession(ctx context.Context, refreshToken string) (*service.SessionData, error)
+	DeleteSession(ctx context.Context, refreshToken string) error
+	DeleteAllUserSessions(ctx context.Context, userID string) error
+	IsSessionValid(ctx context.Context, refreshToken string) bool
+}
+
+// Mock SessionService for testing
+type MockSessionService struct{}
+
+func (m *MockSessionService) CreateSession(ctx context.Context, userID, email string, refreshToken string, expiration time.Duration) error {
+	return nil
+}
+
+func (m *MockSessionService) GetSession(ctx context.Context, refreshToken string) (*service.SessionData, error) {
+	return &service.SessionData{
+		UserID: "test-user",
+		Email:  "test@example.com",
+	}, nil
+}
+
+func (m *MockSessionService) DeleteSession(ctx context.Context, refreshToken string) error {
+	return nil
+}
+
+func (m *MockSessionService) DeleteAllUserSessions(ctx context.Context, userID string) error {
+	return nil
+}
+
+func (m *MockSessionService) IsSessionValid(ctx context.Context, refreshToken string) bool {
+	return true
+}
+
 // --- Suite ---
 type AuthServiceIntegrationSuite struct {
 	suite.Suite
-	db      *gorm.DB
-	mock    sqlmock.Sqlmock
-	repo    domain.AuthRepository
-	logger  *zap.Logger
-	google  *oauth2.Config
-	config  *common.Config
-	service *service.AuthService
-	cleanup func()
+	db             *gorm.DB
+	mock           sqlmock.Sqlmock
+	repo           domain.AuthRepository
+	logger         *zap.Logger
+	google         *oauth2.Config
+	config         *common.Config
+	sessionService *MockSessionService
+	service        *service.AuthService
+	cleanup        func()
 }
 
 func (s *AuthServiceIntegrationSuite) SetupTest() {
@@ -45,7 +83,13 @@ func (s *AuthServiceIntegrationSuite) SetupTest() {
 	s.repo = gormrepo.NewAuthRepo(db, s.logger)
 	s.google = &oauth2.Config{ClientID: "test", ClientSecret: "test", RedirectURL: "http://localhost"}
 	s.config = &common.Config{JwtSecret: "secret", AccessJwtExpiration: 10, RefreshTokenExpiration: 7}
-	s.service = service.NewAuthService(s.repo, s.logger, s.google, s.config)
+	s.sessionService = &MockSessionService{}
+
+	// Create real SessionService for constructor compatibility
+	redisClient := &redis.Client{} // Mock redis client
+	realSessionService := service.NewSessionService(redisClient, s.logger)
+
+	s.service = service.NewAuthService(s.repo, s.logger, s.google, s.config, realSessionService)
 }
 
 func (s *AuthServiceIntegrationSuite) TearDownTest() {

@@ -33,14 +33,16 @@ type AuthService struct {
 	logger            *zap.Logger
 	GoogleOauthConfig *oauth2.Config
 	config            *common.Config
+	sessionService    *SessionService
 }
 
-func NewAuthService(repo domain.AuthRepository, logger *zap.Logger, googleConfig *oauth2.Config, config *common.Config) *AuthService {
+func NewAuthService(repo domain.AuthRepository, logger *zap.Logger, googleConfig *oauth2.Config, config *common.Config, sessionService *SessionService) *AuthService {
 	return &AuthService{
 		repo:              repo,
 		GoogleOauthConfig: googleConfig,
 		logger:            logger,
 		config:            config,
+		sessionService:    sessionService,
 	}
 }
 
@@ -244,7 +246,14 @@ func (s *AuthService) GenerateToken(user *domain.User) (accessToken, refreshToke
 		return accessToken, refreshToken, err
 	}
 
-	return accessToken, refreshToken, err
+	expiration := time.Duration(s.config.RefreshTokenExpiration) * 24 * time.Hour
+	err = s.sessionService.CreateSession(context.Background(), user.ID, user.Email, refreshToken, expiration)
+	if err != nil {
+		s.logger.Error("error_create_session", zap.Error(err))
+		return accessToken, refreshToken, err
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 func (s *AuthService) GenerateAccessTokenJWT(user *domain.User) (string, error) {
@@ -270,4 +279,12 @@ func (s *AuthService) GenerateRefreshTokenJWT(user *domain.User) (string, error)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims(claims))
 	return token.SignedString([]byte(s.config.JwtSecret))
+}
+
+func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
+	return s.sessionService.DeleteSession(ctx, refreshToken)
+}
+
+func (s *AuthService) LogoutAllDevices(ctx context.Context, userID string) error {
+	return s.sessionService.DeleteAllUserSessions(ctx, userID)
 }

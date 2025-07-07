@@ -38,7 +38,7 @@ func (h *EventHandler) RegisterEvent(c *fiber.Ctx) error {
 
 	err := h.service.RegisterEvent(req.EventID, req.UserID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Registration successful"})

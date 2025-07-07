@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"event-registration/internal/common/helper"
 
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -40,7 +41,7 @@ func (v *Validator) ValidationErrors(err error) map[string]string {
 	out := make(map[string]string)
 	if errors.As(err, &ve) {
 		for _, fe := range ve {
-			out[fe.Field()] = fe.Translate(v.translator)
+			out[helper.Underscore(fe.Field())] = fe.Translate(v.translator)
 		}
 	} else if err != nil {
 		out["unexpected_error"] = err.Error()

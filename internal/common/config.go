@@ -42,6 +42,7 @@ type Config struct {
 	JwtSecret                 string        `mapstructure:"JWT_SECRET"`
 	RefreshTokenExpiration    int           `mapstructure:"REFRESH_JWT_EXPIRATION"`
 	AccessJwtExpiration       int           `mapstructure:"ACCESS_JWT_EXPIRATION"`
+	SentryDSN                 string        `mapstructure:"SENTRY_DSN"`
 }
 
 func Load() (*Config, error) {

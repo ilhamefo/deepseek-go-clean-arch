@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -12,6 +13,7 @@ func (m *Middleware) ErrorHandler(c *fiber.Ctx, err error) error {
 		code = e.Code
 		msg = e.Message
 	} else if err != nil {
+		sentry.CaptureException(err)
 		msg = err.Error()
 	}
 

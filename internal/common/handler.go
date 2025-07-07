@@ -41,6 +41,14 @@ func (h *Handler) ResponseError(c *fiber.Ctx, status int, message string, err er
 	})
 }
 
+func (h *Handler) ResponseValidationError(c *fiber.Ctx, message string, data interface{}) error {
+	return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
+		"status":  http.StatusUnprocessableEntity,
+		"message": data,
+		"error":   message,
+	})
+}
+
 func (h *Handler) ResponseWithStatus(c *fiber.Ctx, status int, message string, data interface{}) error {
 	return c.Status(status).JSON(fiber.Map{
 		"status":  status,

@@ -68,7 +68,11 @@ func (h *AuthHandler) GoogleHandleCallback(c *fiber.Ctx) error {
 	}
 
 	if err := h.handler.Validator.Struct(request); err != nil {
-		return h.handler.ResponseWithStatus(c, http.StatusUnprocessableEntity, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+		return h.handler.ResponseValidationError(
+			c,
+			constant.VALIDATION_ERROR,
+			h.handler.Validator.ValidationErrors(err),
+		)
 	}
 
 	request.StateCookie = c.Cookies("oauth_state")
@@ -110,7 +114,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 
 	accessToken, refreshToken, err := h.service.GenerateToken(&user)
 	if err != nil {
-		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "Failed to generate access token", nil)
+		return h.handler.ResponseWithStatus(c, http.StatusBadRequest, "Failed to generate access token", nil)
 	}
 
 	h.createCookies(c, accessToken, refreshToken)
@@ -135,17 +139,87 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	if err := h.handler.Validator.Struct(request); err != nil {
-		return h.handler.ResponseWithStatus(c, http.StatusUnprocessableEntity, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
 	}
 
 	accessToken, refreshToken, err := h.service.Login(c.Context(), request)
 	if err != nil {
-		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "login_failed", err.Error())
+		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
 	h.createCookies(c, accessToken, refreshToken)
 
 	return h.handler.ResponseSuccess(c, nil)
+}
+
+// Logout godoc
+// @Summary Logout
+// @Description Logout from the application
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} domain.User
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return h.handler.ResponseWithStatus(c, http.StatusBadRequest, "refresh_token_required", nil)
+	}
+
+	err := h.service.Logout(c.Context(), refreshToken)
+	if err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "failed_to_logout", nil)
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		MaxAge:   -1,
+		HTTPOnly: true,
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1,
+		HTTPOnly: true,
+	})
+
+	return h.handler.ResponseSuccess(c, fiber.Map{"message": "logged_out_successfully"})
+}
+
+// LogoutAllDevices godoc
+// @Summary Logout from All Devices
+// @Description Logout from all devices
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} domain.User
+// @Router /auth/logout-all [post]
+func (h *AuthHandler) LogoutAllDevices(c *fiber.Ctx) error {
+	user := h.handler.ParseUser(c)
+
+	err := h.service.LogoutAllDevices(c.Context(), user.ID)
+	if err != nil {
+		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "failed_to_logout_all_devices", nil)
+	}
+
+	// Clear cookies
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		MaxAge:   -1,
+		HTTPOnly: true,
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1,
+		HTTPOnly: true,
+	})
+
+	return h.handler.ResponseSuccess(c, fiber.Map{"message": "logged_out_from_all_devices"})
 }
 
 func (h *AuthHandler) createCookies(c *fiber.Ctx, accessToken, refreshToken string) {

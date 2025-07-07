@@ -23,5 +23,9 @@ func RegisterAuthRoutes(app *fiber.App, authHandler *handler.AuthHandler, m *mid
 	google.Get("/callback", authHandler.GoogleHandleCallback)
 
 	auth.Get("/refresh-token", m.VerifyRefreshToken(), authHandler.RefreshToken)
-	app.Get("/me", m.AuthMiddleware(), authHandler.Protected)
+
+	authenticated := app.Group("/", m.AuthMiddleware())
+	authenticated.Get("/me", m.AuthMiddleware(), authHandler.Protected)
+	authenticated.Post("/logout", m.AuthMiddleware(), authHandler.Logout)
+	authenticated.Post("/logout-all", m.AuthMiddleware(), authHandler.LogoutAllDevices)
 }

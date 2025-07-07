@@ -33,6 +33,15 @@ func (m *Middleware) AuthMiddleware() fiber.Handler {
 			return m.handler.ResponseWithStatus(c, fiber.StatusUnauthorized, "invalid_token_type", nil)
 		}
 
+		exist, err := m.sessionService.CheckAccessToken(c.Context(), accessToken)
+		if err != nil {
+			return m.handler.ResponseWithStatus(c, fiber.StatusInternalServerError, "internal_error", nil)
+		}
+
+		if !exist {
+			return m.handler.ResponseWithStatus(c, fiber.StatusUnauthorized, "access_token_not_found", nil)
+		}
+
 		user := domain.User{
 			Email: (*claims)["email"].(string),
 			ID:    (*claims)["sub"].(string),
@@ -68,14 +77,16 @@ func (m *Middleware) VerifyRefreshToken() fiber.Handler {
 			return m.handler.ResponseWithStatus(c, http.StatusUnauthorized, "invalid_token_type", nil)
 		}
 
+		if !m.sessionService.IsSessionValid(c.Context(), refreshToken) {
+			return m.handler.ResponseWithStatus(c, http.StatusUnauthorized, "session_expired_or_invalid", nil)
+		}
+
 		user := domain.User{
 			Email: (*claims)["email"].(string),
 			ID:    (*claims)["sub"].(string),
 		}
 
 		c.Locals("user", user)
-
 		return c.Next()
 	}
-
 }
