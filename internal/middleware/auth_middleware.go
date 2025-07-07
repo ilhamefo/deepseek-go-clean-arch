@@ -33,13 +33,13 @@ func (m *Middleware) AuthMiddleware() fiber.Handler {
 			return m.handler.ResponseWithStatus(c, fiber.StatusUnauthorized, "invalid_token_type", nil)
 		}
 
-		exist, err := m.sessionService.CheckAccessToken(c.Context(), accessToken)
+		isBlacklisted, err := m.sessionService.IsAccessTokenBlacklisted(c.Context(), accessToken)
 		if err != nil {
-			return m.handler.ResponseWithStatus(c, fiber.StatusInternalServerError, "internal_error", nil)
+			return m.handler.ResponseWithStatus(c, fiber.StatusInternalServerError, "error_checking_blacklist", nil)
 		}
 
-		if !exist {
-			return m.handler.ResponseWithStatus(c, fiber.StatusUnauthorized, "access_token_not_found", nil)
+		if isBlacklisted {
+			return m.handler.ResponseWithStatus(c, fiber.StatusUnauthorized, "access_token_blacklisted", nil)
 		}
 
 		user := domain.User{

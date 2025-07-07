@@ -162,11 +162,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
-	if refreshToken == "" {
-		return h.handler.ResponseWithStatus(c, http.StatusBadRequest, "refresh_token_required", nil)
-	}
 
-	err := h.service.Logout(c.Context(), refreshToken)
+	accessToken := c.Cookies("access_token")
+
+	err := h.service.Logout(c.Context(), refreshToken, accessToken)
 	if err != nil {
 		return h.handler.ResponseWithStatus(c, http.StatusInternalServerError, "failed_to_logout", nil)
 	}

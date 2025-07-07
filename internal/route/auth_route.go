@@ -26,6 +26,6 @@ func RegisterAuthRoutes(app *fiber.App, authHandler *handler.AuthHandler, m *mid
 
 	authenticated := app.Group("/", m.AuthMiddleware())
 	authenticated.Get("/me", m.AuthMiddleware(), authHandler.Protected)
-	authenticated.Post("/logout", m.AuthMiddleware(), authHandler.Logout)
+	authenticated.Post("/logout", m.VerifyRefreshToken(), m.AuthMiddleware(), authHandler.Logout)
 	authenticated.Post("/logout-all", m.AuthMiddleware(), authHandler.LogoutAllDevices)
 }
