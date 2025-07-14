@@ -76,6 +76,7 @@ func main() {
 		}),
 
 		fx.Invoke(route.RegisterAuthRoutes),
+		fx.Invoke(route.RegisterDashboardPLNMobileRoutes),
 	)
 
 	app.Run()
