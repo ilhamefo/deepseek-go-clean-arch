@@ -3,7 +3,6 @@ package gorm
 import (
 	"errors"
 
-	"github.com/getsentry/sentry-go"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +16,7 @@ func handleGormError(err error) error {
 	}
 
 	// Laporkan error ke Sentry
-	sentry.CaptureException(err)
+	// sentry.CaptureException(err)
 
 	return errors.New("sql_error")
 }

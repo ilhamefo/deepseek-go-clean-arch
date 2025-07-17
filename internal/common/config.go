@@ -43,6 +43,12 @@ type Config struct {
 	RefreshTokenExpiration    int           `mapstructure:"REFRESH_JWT_EXPIRATION"`
 	AccessJwtExpiration       int           `mapstructure:"ACCESS_JWT_EXPIRATION"`
 	SentryDSN                 string        `mapstructure:"SENTRY_DSN"`
+	VCCDBHost                 string        `mapstructure:"POSTGRES_VCC_HOST"`
+	VCCDBPort                 string        `mapstructure:"POSTGRES_VCC_PORT"`
+	VCCDBDatabase             string        `mapstructure:"POSTGRES_VCC_DATABASE"`
+	VCCDBUser                 string        `mapstructure:"POSTGRES_VCC_USER"`
+	VCCDBPassword             string        `mapstructure:"POSTGRES_VCC_PASSWORD"`
+	VCCDBSchema               string        `mapstructure:"POSTGRES_VCC_SCHEMA"`
 }
 
 func Load() (*Config, error) {

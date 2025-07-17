@@ -47,7 +47,11 @@ func main() {
 			common.NewHandler,
 			config.NewGoogleOAuthConfig,
 			fx.Annotate(database.NewGormDBAuth, fx.ResultTags(`name:"authDB"`)),
+			fx.Annotate(database.NewGormDBVCC, fx.ResultTags(`name:"VCCDB"`)),
 			fx.Annotate(gorm.NewAuthRepo, fx.ParamTags(`name:"authDB"`)),
+			fx.Annotate(gorm.NewUserRepo, fx.ParamTags(`name:"VCCDB"`)),
+			service.NewUserService,
+			handler.NewUserHandler,
 			service.NewAuthService,
 			handler.NewAuthHandler,
 			config.NewFiberApp,
@@ -75,7 +79,8 @@ func main() {
 			})
 		}),
 
-		fx.Invoke(route.RegisterAuthRoutes),
+		fx.Invoke(route.RegisterUserRoutes),
+		// fx.Invoke(route.RegisterAuthRoutes),
 	)
 
 	app.Run()
