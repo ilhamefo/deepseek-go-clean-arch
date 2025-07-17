@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"event-registration/internal/common/helper"
 	"fmt"
 	"time"
 
@@ -82,6 +83,7 @@ func (s *SessionService) GetSession(ctx context.Context, refreshToken string) (*
 
 func (s *SessionService) CheckAccessToken(ctx context.Context, access string) (exist bool, err error) {
 	key := fmt.Sprintf("session:%s", access)
+	helper.PrettyPrint("Checking access token in redis", key, "", "", "", "")
 	_, err = s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -145,4 +147,22 @@ func (s *SessionService) IsSessionValid(ctx context.Context, refreshToken string
 	}
 
 	return time.Now().Before(sessionData.ExpiresAt)
+}
+
+// BlacklistAccessToken menambahkan access token ke blacklist Redis sampai expired
+func (s *SessionService) BlacklistAccessToken(ctx context.Context, accessToken string, exp time.Time) error {
+	ttl := time.Until(exp)
+	if ttl <= 0 {
+		return nil
+	}
+
+	key := fmt.Sprintf("blacklist:%s", accessToken)
+	return s.redis.Set(ctx, key, "1", ttl).Err()
+}
+
+// IsAccessTokenBlacklisted mengecek apakah access token ada di blacklist Redis
+func (s *SessionService) IsAccessTokenBlacklisted(ctx context.Context, accessToken string) (bool, error) {
+	key := fmt.Sprintf("blacklist:%s", accessToken)
+	exists, err := s.redis.Exists(ctx, key).Result()
+	return exists == 1, err
 }

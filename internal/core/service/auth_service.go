@@ -281,8 +281,20 @@ func (s *AuthService) GenerateRefreshTokenJWT(user *domain.User) (string, error)
 	return token.SignedString([]byte(s.config.JwtSecret))
 }
 
-func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
-	return s.sessionService.DeleteSession(ctx, refreshToken)
+func (s *AuthService) Logout(ctx context.Context, refreshToken, accessToken string) error {
+	err := s.sessionService.BlacklistAccessToken(ctx, accessToken, time.Now().Add(time.Duration(s.config.AccessJwtExpiration)*time.Minute))
+	if err != nil {
+		s.logger.Error("error_blacklist_access_token", zap.Error(err))
+		return err
+	}
+
+	err = s.sessionService.DeleteSession(ctx, refreshToken)
+	if err != nil {
+		s.logger.Error("error_delete_session", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (s *AuthService) LogoutAllDevices(ctx context.Context, userID string) error {
