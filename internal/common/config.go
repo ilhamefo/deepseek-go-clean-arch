@@ -35,6 +35,14 @@ type Config struct {
 	AuthDBPort                string        `mapstructure:"AUTH_DB_PORT"`
 	AuthDBUser                string        `mapstructure:"AUTH_DB_USER"`
 	AuthDBPassword            string        `mapstructure:"AUTH_DB_PASSWORD"`
+	GarminDB                  string        `mapstructure:"GARMIN_DB"`
+	GarminDBSchema            string        `mapstructure:"GARMIN_DB_SCHEMA"`
+	GarminDBHost              string        `mapstructure:"GARMIN_DB_HOST"`
+	GarminDBPort              string        `mapstructure:"GARMIN_DB_PORT"`
+	GarminDBUser              string        `mapstructure:"GARMIN_DB_USER"`
+	GarminDBPassword          string        `mapstructure:"GARMIN_DB_PASSWORD"`
+	GarminToken               string        `mapstructure:"GARMIN_TOKEN"`
+	GarminRefreshToken        string        `mapstructure:"GARMIN_REFRESH_TOKEN"`
 	RedisHost                 string        `mapstructure:"REDIS_HOST"`
 	RedisPort                 int           `mapstructure:"REDIS_PORT"`
 	RedisPassword             string        `mapstructure:"REDIS_PASSWORD"`

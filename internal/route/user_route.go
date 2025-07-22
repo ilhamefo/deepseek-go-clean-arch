@@ -8,15 +8,12 @@ import (
 	"github.com/gofiber/swagger"
 )
 
-func RegisterUserRoutes(app *fiber.App, userHandler *handler.UserHandler, m *middleware.Middleware) {
+func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middleware.Middleware) {
 	app.Get("/swagger/*", swagger.New(swagger.Config{
 		DeepLinking:     true,
 		DocExpansion:    "list",
 		WithCredentials: true,
 	}))
 
-	app.Get("/roles", userHandler.Roles)
-	app.Get("/search-user", userHandler.Search)
-	app.Get("/units", userHandler.GetUnits)
-	app.Post("/update/:id", userHandler.Update)
+	app.Get("/refresh", h.Refresh)
 }

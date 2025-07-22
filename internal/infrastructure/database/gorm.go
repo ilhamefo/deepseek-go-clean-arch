@@ -106,6 +106,41 @@ func NewGormDBAuth(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error
 	return db, nil
 }
 
+func NewGarminGormDB(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
+
+	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		cfg.GarminDBUser,
+		url.QueryEscape(cfg.GarminDBPassword), // Use the encoded password
+		cfg.GarminDBHost,
+		cfg.GarminDBPort,
+		cfg.GarminDB,
+	)
+
+	db, err := gorm.Open(postgres.Open(connURL), &gorm.Config{
+		SkipDefaultTransaction: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	db.Logger = loggr
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	if !cfg.IsProduction {
+		return db.Debug(), nil
+	}
+
+	return db, nil
+}
+
 func NewGormDBVCC(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
 
 	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
