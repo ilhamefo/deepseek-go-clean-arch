@@ -6,11 +6,21 @@ import (
 	"event-registration/internal/common"
 	"event-registration/internal/common/request"
 	"event-registration/internal/core/domain"
+	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
+
+// min returns the smaller of x or y
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
 
 type GarminService struct {
 	repo   domain.GarminRepository
@@ -27,76 +37,236 @@ func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *
 }
 
 func (s *GarminService) Refresh(ctx context.Context, r *request.RefreshActivitiesRequest) (res []*domain.Activity, err error) {
-	url := "https://connect.garmin.com/activitylist-service/activities/search/activities?limit=10&start=0"
+	const pageSize = 20 // Increase page size for better performance
+	var allActivities []*domain.Activity
+	start := 0
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		s.logger.Error("error_make_new_request", zap.Error(err))
-		return nil, err
-	}
+	s.logger.Info("starting_garmin_data_fetch", zap.String("token", r.Token[:20]+"..."))
 
-	// Header
-	req.Header.Set("accept", "application/json, text/plain, */*")
-	req.Header.Set("authorization", "Bearer "+r.Token)
-	req.Header.Set("di-backend", "connectapi.garmin.com")
-
-	// Cookie
-	req.Header.Set("Cookie", r.Cookies)
-
-	// Kirim request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		s.logger.Error("error_do_request", zap.Error(err))
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		// Baca response
-		errBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			s.logger.Error("error_read_request", zap.Error(err))
-			return nil, err
+	for {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			s.logger.Warn("context_cancelled_during_fetch", zap.Int("fetched_so_far", len(allActivities)))
+			return allActivities, ctx.Err()
+		default:
 		}
 
-		s.logger.Error("error_response",
-			zap.Any("status_code", resp.StatusCode),
-			zap.Any("body", string(errBody)),
+		pageActivities, hasMore, err := s.fetchActivitiesPage(ctx, r, start, pageSize)
+		if err != nil {
+			s.logger.Error("error_fetch_page",
+				zap.Error(err),
+				zap.Int("start", start),
+				zap.Int("page_size", pageSize),
+			)
+			return allActivities, err
+		}
+
+		// Add to total activities
+		allActivities = append(allActivities, pageActivities...)
+
+		s.logger.Info("fetched_page",
+			zap.Int("page_activities", len(pageActivities)),
+			zap.Int("total_activities", len(allActivities)),
+			zap.Int("start", start),
 		)
 
-		return nil, err
+		// If no more data or empty response, break
+		if !hasMore || len(pageActivities) == 0 {
+			s.logger.Info("fetch_completed", zap.Int("total_activities", len(allActivities)))
+			break
+		}
+
+		// Move to next page
+		start += pageSize
+
+		// Safety check to prevent infinite loop
+		if start > 10000 { // Max 10k activities
+			s.logger.Warn("max_activities_limit_reached", zap.Int("limit", 10000))
+			break
+		}
 	}
 
-	// Baca response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		s.logger.Error("error_read_request", zap.Error(err))
-		return nil, err
+	// Upsert all activities at once
+	if len(allActivities) > 0 {
+		err = s.Upsert(allActivities)
+		if err != nil {
+			s.logger.Error("error_upsert_all", zap.Error(err))
+			return allActivities, err
+		}
 	}
 
-	err = json.Unmarshal(body, &res)
-	if err != nil {
-		s.logger.Error("error_unmarshal_json", zap.Error(err))
-		return nil, err
+	return allActivities, nil
+}
+
+func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.RefreshActivitiesRequest, start, limit int) ([]*domain.Activity, bool, error) {
+	url := fmt.Sprintf("https://connect.garmin.com/activitylist-service/activities/search/activities?limit=%d&start=%d", limit, start)
+
+	maxRetries := 3
+	var lastErr error
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			s.logger.Error("error_make_new_request", zap.Error(err))
+			return nil, false, err
+		}
+
+		// Header
+		req.Header.Set("accept", "application/json, text/plain, */*")
+		req.Header.Set("authorization", "Bearer "+r.Token)
+		req.Header.Set("di-backend", "connectapi.garmin.com")
+		req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+
+		// Cookie
+		req.Header.Set("Cookie", r.Cookies)
+
+		// Kirim request
+		client := &http.Client{
+			Timeout: 30 * time.Second, // Add timeout
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			s.logger.Warn("request_failed_retrying",
+				zap.Error(err),
+				zap.Int("attempt", attempt),
+				zap.Int("max_retries", maxRetries),
+			)
+
+			if attempt < maxRetries {
+				// Wait before retry with exponential backoff
+				waitTime := time.Duration(attempt) * time.Second
+				time.Sleep(waitTime)
+				continue
+			}
+
+			s.logger.Error("error_do_request_final", zap.Error(err))
+			return nil, false, err
+		}
+		defer resp.Body.Close()
+
+		// Handle rate limiting
+		if resp.StatusCode == 429 {
+			lastErr = fmt.Errorf("rate limited by API")
+			s.logger.Warn("rate_limited_retrying",
+				zap.Int("attempt", attempt),
+				zap.Int("max_retries", maxRetries),
+			)
+
+			if attempt < maxRetries {
+				// Wait longer for rate limiting
+				waitTime := time.Duration(attempt*5) * time.Second
+				s.logger.Info("waiting_for_rate_limit", zap.Duration("wait_time", waitTime))
+				time.Sleep(waitTime)
+				continue
+			}
+
+			return nil, false, fmt.Errorf("API rate limited after %d attempts", maxRetries)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			errBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				s.logger.Error("error_read_error_response", zap.Error(err))
+				return nil, false, err
+			}
+
+			lastErr = fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(errBody))
+			s.logger.Error("error_response",
+				zap.Int("status_code", resp.StatusCode),
+				zap.String("body", string(errBody)),
+				zap.String("url", url),
+				zap.Int("attempt", attempt),
+			)
+
+			// Don't retry for client errors (4xx except 429)
+			if resp.StatusCode >= 400 && resp.StatusCode < 500 && resp.StatusCode != 429 {
+				return nil, false, lastErr
+			}
+
+			if attempt < maxRetries {
+				waitTime := time.Duration(attempt*2) * time.Second
+				time.Sleep(waitTime)
+				continue
+			}
+
+			return nil, false, lastErr
+		}
+
+		// Baca response
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			s.logger.Error("error_read_response", zap.Error(err))
+			return nil, false, err
+		}
+
+		var pageActivities []*domain.Activity
+		err = json.Unmarshal(body, &pageActivities)
+		if err != nil {
+			s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body[:min(500, len(body))])))
+			return nil, false, err
+		}
+
+		// Success - determine if there are more pages
+		// If we got less than the limit, it's likely the last page
+		hasMore := len(pageActivities) == limit
+
+		s.logger.Debug("page_fetch_success",
+			zap.Int("activities_count", len(pageActivities)),
+			zap.Bool("has_more", hasMore),
+			zap.Int("attempt", attempt),
+		)
+
+		return pageActivities, hasMore, nil
 	}
 
-	err = s.Upsert(res)
-	if err != nil {
-		s.logger.Error("error_upsert", zap.Error(err))
-		return nil, err
-	}
-
-	return res, err
+	return nil, false, lastErr
 }
 
 func (s *GarminService) Upsert(models []*domain.Activity) (err error) {
-
-	err = s.repo.Update(models)
-	if err != nil {
-		s.logger.Error("error_update_data", zap.Error(err))
-		return err
+	if len(models) == 0 {
+		s.logger.Info("no_activities_to_upsert")
+		return nil
 	}
 
-	return err
+	s.logger.Info("starting_upsert", zap.Int("total_activities", len(models)))
+
+	const batchSize = 50
+	totalBatches := (len(models) + batchSize - 1) / batchSize
+
+	for i := 0; i < len(models); i += batchSize {
+		end := i + batchSize
+		if end > len(models) {
+			end = len(models)
+		}
+
+		batch := models[i:end]
+		batchNum := (i / batchSize) + 1
+
+		s.logger.Info("processing_batch",
+			zap.Int("batch_number", batchNum),
+			zap.Int("total_batches", totalBatches),
+			zap.Int("batch_size", len(batch)),
+		)
+
+		err = s.repo.Update(batch)
+		if err != nil {
+			s.logger.Error("error_update_batch",
+				zap.Error(err),
+				zap.Int("batch_number", batchNum),
+				zap.Int("batch_size", len(batch)),
+			)
+			return err
+		}
+
+		s.logger.Info("batch_completed",
+			zap.Int("batch_number", batchNum),
+			zap.Int("processed", end),
+			zap.Int("total", len(models)),
+		)
+	}
+
+	s.logger.Info("upsert_completed", zap.Int("total_activities", len(models)))
+	return nil
 }

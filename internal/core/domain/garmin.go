@@ -188,3 +188,72 @@ type Activity struct {
 func (Activity) TableName() string {
 	return "activities"
 }
+
+// SectionTypeDTO represents the section type information
+type SectionTypeDTO struct {
+	ID             int    `json:"id" gorm:"column:id;primaryKey"`
+	Key            string `json:"key" gorm:"column:key;size:50"`
+	SectionTypeKey string `json:"sectionTypeKey" gorm:"column:section_type_key;size:50"`
+}
+
+func (SectionTypeDTO) TableName() string {
+	return "section_types"
+}
+
+type LapDTO struct {
+	ID                    int     `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	ActivityID            int64   `json:"activityId" gorm:"column:activity_id;index"`
+	StartTimeGMT          string  `json:"startTimeGMT" gorm:"column:start_time_gmt;size:50"`
+	StartLatitude         float64 `json:"startLatitude" gorm:"column:start_latitude;type:decimal(15,12)"`
+	StartLongitude        float64 `json:"startLongitude" gorm:"column:start_longitude;type:decimal(15,12)"`
+	EndLatitude           float64 `json:"endLatitude" gorm:"column:end_latitude;type:decimal(15,12)"`
+	EndLongitude          float64 `json:"endLongitude" gorm:"column:end_longitude;type:decimal(15,12)"`
+	Distance              float64 `json:"distance" gorm:"column:distance;type:decimal(10,5)"`
+	Duration              float64 `json:"duration" gorm:"column:duration;type:decimal(10,5)"`
+	MovingDuration        float64 `json:"movingDuration" gorm:"column:moving_duration;type:decimal(10,5)"`
+	ElapsedDuration       float64 `json:"elapsedDuration" gorm:"column:elapsed_duration;type:decimal(10,5)"`
+	ElevationGain         float64 `json:"elevationGain" gorm:"column:elevation_gain;type:decimal(8,2)"`
+	ElevationLoss         float64 `json:"elevationLoss" gorm:"column:elevation_loss;type:decimal(8,2)"`
+	MaxElevation          float64 `json:"maxElevation" gorm:"column:max_elevation;type:decimal(8,2)"`
+	MinElevation          float64 `json:"minElevation" gorm:"column:min_elevation;type:decimal(8,2)"`
+	AverageSpeed          float64 `json:"averageSpeed" gorm:"column:average_speed;type:decimal(8,5)"`
+	AverageMovingSpeed    float64 `json:"averageMovingSpeed" gorm:"column:average_moving_speed;type:decimal(8,5)"`
+	MaxSpeed              float64 `json:"maxSpeed" gorm:"column:max_speed;type:decimal(8,5)"`
+	Calories              float64 `json:"calories" gorm:"column:calories;type:decimal(8,2)"`
+	BMRCalories           float64 `json:"bmrCalories" gorm:"column:bmr_calories;type:decimal(8,2)"`
+	AverageHR             float64 `json:"averageHR" gorm:"column:average_hr;type:decimal(5,2)"`
+	MaxHR                 float64 `json:"maxHR" gorm:"column:max_hr;type:decimal(5,2)"`
+	AverageRunCadence     float64 `json:"averageRunCadence" gorm:"column:average_run_cadence;type:decimal(8,4)"`
+	MaxRunCadence         float64 `json:"maxRunCadence" gorm:"column:max_run_cadence;type:decimal(8,2)"`
+	AverageTemperature    float64 `json:"averageTemperature" gorm:"column:average_temperature;type:decimal(5,2)"`
+	MaxTemperature        float64 `json:"maxTemperature" gorm:"column:max_temperature;type:decimal(5,2)"`
+	MinTemperature        float64 `json:"minTemperature" gorm:"column:min_temperature;type:decimal(5,2)"`
+	AveragePower          float64 `json:"averagePower" gorm:"column:average_power;type:decimal(8,2)"`
+	MaxPower              float64 `json:"maxPower" gorm:"column:max_power;type:decimal(8,2)"`
+	MinPower              float64 `json:"minPower" gorm:"column:min_power;type:decimal(8,2)"`
+	NormalizedPower       float64 `json:"normalizedPower" gorm:"column:normalized_power;type:decimal(8,2)"`
+	TotalWork             float64 `json:"totalWork" gorm:"column:total_work;type:decimal(12,6)"`
+	GroundContactTime     float64 `json:"groundContactTime" gorm:"column:ground_contact_time;type:decimal(8,6)"`
+	StrideLength          float64 `json:"strideLength" gorm:"column:stride_length;type:decimal(8,6)"`
+	VerticalOscillation   float64 `json:"verticalOscillation" gorm:"column:vertical_oscillation;type:decimal(8,6)"`
+	VerticalRatio         float64 `json:"verticalRatio" gorm:"column:vertical_ratio;type:decimal(8,6)"`
+	MaxVerticalSpeed      float64 `json:"maxVerticalSpeed" gorm:"column:max_vertical_speed;type:decimal(8,12)"`
+	AvgGradeAdjustedSpeed float64 `json:"avgGradeAdjustedSpeed" gorm:"column:avg_grade_adjusted_speed;type:decimal(8,6)"`
+	LapIndex              int     `json:"lapIndex" gorm:"column:lap_index"`
+	IntensityType         string  `json:"intensityType" gorm:"column:intensity_type;size:20"`
+	MessageIndex          int     `json:"messageIndex" gorm:"column:message_index"`
+
+	// Arrays (tidak disimpan di database, hanya untuk parsing JSON)
+	LengthDTOs           []interface{} `json:"lengthDTOs" gorm:"-"`
+	ConnectIQMeasurement []interface{} `json:"connectIQMeasurement" gorm:"-"`
+}
+
+func (LapDTO) TableName() string {
+	return "activity_laps"
+}
+
+// ActivitySplitsResponse represents the complete response from Garmin splits API
+type ActivitySplitsResponse struct {
+	ActivityID int64    `json:"activityId"`
+	LapDTOs    []LapDTO `json:"lapDTOs"`
+}
