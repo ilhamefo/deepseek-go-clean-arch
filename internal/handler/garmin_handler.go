@@ -2,6 +2,8 @@ package handler
 
 import (
 	"event-registration/internal/common"
+	"event-registration/internal/common/constant"
+	"event-registration/internal/common/request"
 	"event-registration/internal/core/service"
 	"net/http"
 
@@ -21,18 +23,29 @@ func NewGarminHandler(service *service.GarminService, handler *common.Handler) *
 	}
 }
 
-// Search godoc
-// @Summary Search
-// @Description This endpoint is used to search users by keyword.
+// Refresh godoc
+// @Summary Refresh
+// @Description This endpoint is used to Refresh Garmin activities.
 // @Tags Garmin
 // @Accept  json
+// @Param request body request.RefreshActivitiesRequest false "..."
 // @Produce  json
-// @Router /refresh [get]
+// @Router /refresh [post]
 func (h *GarminHandler) Refresh(c *fiber.Ctx) error {
-	_, err := h.service.Refresh(c.Context())
+	request := new(request.RefreshActivitiesRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	res, err := h.service.Refresh(c.Context(), request)
 	if err != nil {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	return h.handler.ResponseSuccess(c, true)
+	return h.handler.ResponseSuccess(c, res)
 }

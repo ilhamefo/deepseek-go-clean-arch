@@ -1,8 +1,7 @@
 package domain
 
-import "time"
-
 type GarminRepository interface {
+	Update(activities []*Activity) error
 }
 
 type ActivityType struct {
@@ -42,7 +41,7 @@ type SummarizedDiveInfo struct {
 }
 
 type UserRole struct {
-	ID         int    `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	ID         string `json:"id" gorm:"column:id;primaryKey"`
 	ActivityID int64  `json:"activityId" gorm:"column:activity_id;index"`
 	RoleName   string `json:"roleName" gorm:"column:role_name;size:100"`
 }
@@ -52,7 +51,7 @@ func (UserRole) TableName() string {
 }
 
 type SplitSummary struct {
-	ID                   int     `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	ID                   string  `json:"id" gorm:"column:id;primaryKey"`
 	ActivityID           int64   `json:"activityId" gorm:"column:activity_id;index"`
 	NoOfSplits           int     `json:"noOfSplits" gorm:"column:no_of_splits"`
 	TotalAscent          float64 `json:"totalAscent" gorm:"column:total_ascent;type:decimal(8,2)"`
@@ -74,96 +73,96 @@ func (SplitSummary) TableName() string {
 }
 
 type Activity struct {
-	ActivityID                            int64     `json:"activityId" gorm:"column:activity_id;primaryKey"`
-	ActivityName                          string    `json:"activityName" gorm:"column:activity_name;size:255"`
-	StartTimeLocal                        time.Time `json:"startTimeLocal" gorm:"column:start_time_local;type:timestamp"`
-	StartTimeGMT                          time.Time `json:"startTimeGMT" gorm:"column:start_time_gmt;type:timestamp"`
-	EndTimeGMT                            time.Time `json:"endTimeGMT" gorm:"column:end_time_gmt;type:timestamp"`
-	Distance                              float64   `json:"distance" gorm:"column:distance;type:decimal(10,5)"`
-	Duration                              float64   `json:"duration" gorm:"column:duration;type:decimal(10,5)"`
-	ElapsedDuration                       float64   `json:"elapsedDuration" gorm:"column:elapsed_duration;type:decimal(10,5)"`
-	MovingDuration                        float64   `json:"movingDuration" gorm:"column:moving_duration;type:decimal(10,5)"`
-	ElevationGain                         float64   `json:"elevationGain" gorm:"column:elevation_gain;type:decimal(8,2)"`
-	ElevationLoss                         float64   `json:"elevationLoss" gorm:"column:elevation_loss;type:decimal(8,2)"`
-	AverageSpeed                          float64   `json:"averageSpeed" gorm:"column:average_speed;type:decimal(8,5)"`
-	MaxSpeed                              float64   `json:"maxSpeed" gorm:"column:max_speed;type:decimal(8,5)"`
-	StartLatitude                         float64   `json:"startLatitude" gorm:"column:start_latitude;type:decimal(15,12)"`
-	StartLongitude                        float64   `json:"startLongitude" gorm:"column:start_longitude;type:decimal(15,12)"`
-	EndLatitude                           float64   `json:"endLatitude" gorm:"column:end_latitude;type:decimal(15,12)"`
-	EndLongitude                          float64   `json:"endLongitude" gorm:"column:end_longitude;type:decimal(15,12)"`
-	HasPolyline                           bool      `json:"hasPolyline" gorm:"column:has_polyline"`
-	HasImages                             bool      `json:"hasImages" gorm:"column:has_images"`
-	OwnerID                               int64     `json:"ownerId" gorm:"column:owner_id"`
-	OwnerDisplayName                      string    `json:"ownerDisplayName" gorm:"column:owner_display_name;size:255"`
-	OwnerFullName                         string    `json:"ownerFullName" gorm:"column:owner_full_name;size:100"`
-	OwnerProfileImageURLSmall             string    `json:"ownerProfileImageUrlSmall" gorm:"column:owner_profile_image_url_small;size:500"`
-	OwnerProfileImageURLMedium            string    `json:"ownerProfileImageUrlMedium" gorm:"column:owner_profile_image_url_medium;size:500"`
-	OwnerProfileImageURLLarge             string    `json:"ownerProfileImageUrlLarge" gorm:"column:owner_profile_image_url_large;size:500"`
-	Calories                              float64   `json:"calories" gorm:"column:calories;type:decimal(8,2)"`
-	BMRCalories                           float64   `json:"bmrCalories" gorm:"column:bmr_calories;type:decimal(8,2)"`
-	AverageHR                             float64   `json:"averageHR" gorm:"column:average_hr;type:decimal(5,2)"`
-	MaxHR                                 float64   `json:"maxHR" gorm:"column:max_hr;type:decimal(5,2)"`
-	AverageRunningCadenceInStepsPerMinute float64   `json:"averageRunningCadenceInStepsPerMinute" gorm:"column:average_running_cadence;type:decimal(8,4)"`
-	MaxRunningCadenceInStepsPerMinute     float64   `json:"maxRunningCadenceInStepsPerMinute" gorm:"column:max_running_cadence;type:decimal(8,2)"`
-	Steps                                 int       `json:"steps" gorm:"column:steps"`
-	UserPro                               bool      `json:"userPro" gorm:"column:user_pro"`
-	HasVideo                              bool      `json:"hasVideo" gorm:"column:has_video"`
-	TimeZoneID                            int       `json:"timeZoneId" gorm:"column:time_zone_id"`
-	BeginTimestamp                        int64     `json:"beginTimestamp" gorm:"column:begin_timestamp"`
-	SportTypeID                           int       `json:"sportTypeId" gorm:"column:sport_type_id"`
-	AvgPower                              float64   `json:"avgPower" gorm:"column:avg_power;type:decimal(8,2)"`
-	MaxPower                              float64   `json:"maxPower" gorm:"column:max_power;type:decimal(8,2)"`
-	AerobicTrainingEffect                 float64   `json:"aerobicTrainingEffect" gorm:"column:aerobic_training_effect;type:decimal(8,6)"`
-	AnaerobicTrainingEffect               float64   `json:"anaerobicTrainingEffect" gorm:"column:anaerobic_training_effect;type:decimal(8,2)"`
-	NormPower                             float64   `json:"normPower" gorm:"column:norm_power;type:decimal(8,2)"`
-	AvgVerticalOscillation                float64   `json:"avgVerticalOscillation" gorm:"column:avg_vertical_oscillation;type:decimal(8,6)"`
-	AvgGroundContactTime                  float64   `json:"avgGroundContactTime" gorm:"column:avg_ground_contact_time;type:decimal(8,6)"`
-	AvgStrideLength                       float64   `json:"avgStrideLength" gorm:"column:avg_stride_length;type:decimal(8,6)"`
-	VO2MaxValue                           float64   `json:"vO2MaxValue" gorm:"column:vo2_max_value;type:decimal(5,2)"`
-	AvgVerticalRatio                      float64   `json:"avgVerticalRatio" gorm:"column:avg_vertical_ratio;type:decimal(8,6)"`
-	DeviceID                              int64     `json:"deviceId" gorm:"column:device_id"`
-	MinTemperature                        float64   `json:"minTemperature" gorm:"column:min_temperature;type:decimal(5,2)"`
-	MaxTemperature                        float64   `json:"maxTemperature" gorm:"column:max_temperature;type:decimal(5,2)"`
-	MinElevation                          float64   `json:"minElevation" gorm:"column:min_elevation;type:decimal(8,6)"`
-	MaxElevation                          float64   `json:"maxElevation" gorm:"column:max_elevation;type:decimal(8,2)"`
-	MaxDoubleCadence                      float64   `json:"maxDoubleCadence" gorm:"column:max_double_cadence;type:decimal(8,2)"`
-	MaxVerticalSpeed                      float64   `json:"maxVerticalSpeed" gorm:"column:max_vertical_speed;type:float"`
-	Manufacturer                          string    `json:"manufacturer" gorm:"column:manufacturer;size:50"`
-	LocationName                          string    `json:"locationName" gorm:"column:location_name;size:100"`
-	LapCount                              int       `json:"lapCount" gorm:"column:lap_count"`
-	WaterEstimated                        float64   `json:"waterEstimated" gorm:"column:water_estimated;type:decimal(8,2)"`
-	TrainingEffectLabel                   string    `json:"trainingEffectLabel" gorm:"column:training_effect_label;size:50"`
-	MinActivityLapDuration                float64   `json:"minActivityLapDuration" gorm:"column:min_activity_lap_duration;type:decimal(8,6)"`
-	AerobicTrainingEffectMessage          string    `json:"aerobicTrainingEffectMessage" gorm:"column:aerobic_training_effect_message;size:100"`
-	AnaerobicTrainingEffectMessage        string    `json:"anaerobicTrainingEffectMessage" gorm:"column:anaerobic_training_effect_message;size:100"`
-	HasSplits                             bool      `json:"hasSplits" gorm:"column:has_splits"`
-	ModerateIntensityMinutes              int       `json:"moderateIntensityMinutes" gorm:"column:moderate_intensity_minutes"`
-	VigorousIntensityMinutes              int       `json:"vigorousIntensityMinutes" gorm:"column:vigorous_intensity_minutes"`
-	AvgGradeAdjustedSpeed                 float64   `json:"avgGradeAdjustedSpeed" gorm:"column:avg_grade_adjusted_speed;type:decimal(8,6)"`
-	DifferenceBodyBattery                 int       `json:"differenceBodyBattery" gorm:"column:difference_body_battery"`
-	HasHeatMap                            bool      `json:"hasHeatMap" gorm:"column:has_heat_map"`
-	FastestSplit1000                      float64   `json:"fastestSplit_1000" gorm:"column:fastest_split_1000;type:decimal(8,6)"`
-	FastestSplit1609                      float64   `json:"fastestSplit_1609" gorm:"column:fastest_split_1609;type:decimal(8,6)"`
-	HRTimeInZone1                         float64   `json:"hrTimeInZone_1" gorm:"column:hr_time_in_zone_1;type:decimal(8,3)"`
-	HRTimeInZone2                         float64   `json:"hrTimeInZone_2" gorm:"column:hr_time_in_zone_2;type:decimal(8,3)"`
-	HRTimeInZone3                         float64   `json:"hrTimeInZone_3" gorm:"column:hr_time_in_zone_3;type:decimal(8,3)"`
-	HRTimeInZone4                         float64   `json:"hrTimeInZone_4" gorm:"column:hr_time_in_zone_4;type:decimal(8,3)"`
-	HRTimeInZone5                         float64   `json:"hrTimeInZone_5" gorm:"column:hr_time_in_zone_5;type:decimal(8,3)"`
-	PowerTimeInZone1                      float64   `json:"powerTimeInZone_1" gorm:"column:power_time_in_zone_1;type:decimal(8,3)"`
-	PowerTimeInZone2                      float64   `json:"powerTimeInZone_2" gorm:"column:power_time_in_zone_2;type:decimal(8,3)"`
-	PowerTimeInZone3                      float64   `json:"powerTimeInZone_3" gorm:"column:power_time_in_zone_3;type:decimal(8,3)"`
-	PowerTimeInZone4                      float64   `json:"powerTimeInZone_4" gorm:"column:power_time_in_zone_4;type:decimal(8,3)"`
-	PowerTimeInZone5                      float64   `json:"powerTimeInZone_5" gorm:"column:power_time_in_zone_5;type:decimal(8,3)"`
-	QualifyingDive                        bool      `json:"qualifyingDive" gorm:"column:qualifying_dive"`
-	Parent                                bool      `json:"parent" gorm:"column:parent"`
-	PR                                    bool      `json:"pr" gorm:"column:pr"`
-	Favorite                              bool      `json:"favorite" gorm:"column:favorite"`
-	Purposeful                            bool      `json:"purposeful" gorm:"column:purposeful"`
-	DecoDive                              bool      `json:"decoDive" gorm:"column:deco_dive"`
-	ManualActivity                        bool      `json:"manualActivity" gorm:"column:manual_activity"`
-	AutoCalcCalories                      bool      `json:"autoCalcCalories" gorm:"column:auto_calc_calories"`
-	ElevationCorrected                    bool      `json:"elevationCorrected" gorm:"column:elevation_corrected"`
-	ATPActivity                           bool      `json:"atpActivity" gorm:"column:atp_activity"`
+	ActivityID                            int64   `json:"activityId" gorm:"column:activity_id;primaryKey"`
+	ActivityName                          string  `json:"activityName" gorm:"column:activity_name;size:255"`
+	StartTimeLocal                        string  `json:"startTimeLocal" gorm:"column:start_time_local;type:timestamp"`
+	StartTimeGMT                          string  `json:"startTimeGMT" gorm:"column:start_time_gmt;type:timestamp"`
+	EndTimeGMT                            string  `json:"endTimeGMT" gorm:"column:end_time_gmt;type:timestamp"`
+	Distance                              float64 `json:"distance" gorm:"column:distance;type:decimal(10,5)"`
+	Duration                              float64 `json:"duration" gorm:"column:duration;type:decimal(10,5)"`
+	ElapsedDuration                       float64 `json:"elapsedDuration" gorm:"column:elapsed_duration;type:decimal(10,5)"`
+	MovingDuration                        float64 `json:"movingDuration" gorm:"column:moving_duration;type:decimal(10,5)"`
+	ElevationGain                         float64 `json:"elevationGain" gorm:"column:elevation_gain;type:decimal(8,2)"`
+	ElevationLoss                         float64 `json:"elevationLoss" gorm:"column:elevation_loss;type:decimal(8,2)"`
+	AverageSpeed                          float64 `json:"averageSpeed" gorm:"column:average_speed;type:decimal(8,5)"`
+	MaxSpeed                              float64 `json:"maxSpeed" gorm:"column:max_speed;type:decimal(8,5)"`
+	StartLatitude                         float64 `json:"startLatitude" gorm:"column:start_latitude;type:decimal(15,12)"`
+	StartLongitude                        float64 `json:"startLongitude" gorm:"column:start_longitude;type:decimal(15,12)"`
+	EndLatitude                           float64 `json:"endLatitude" gorm:"column:end_latitude;type:decimal(15,12)"`
+	EndLongitude                          float64 `json:"endLongitude" gorm:"column:end_longitude;type:decimal(15,12)"`
+	HasPolyline                           bool    `json:"hasPolyline" gorm:"column:has_polyline"`
+	HasImages                             bool    `json:"hasImages" gorm:"column:has_images"`
+	OwnerID                               int64   `json:"ownerId" gorm:"column:owner_id"`
+	OwnerDisplayName                      string  `json:"ownerDisplayName" gorm:"column:owner_display_name;size:255"`
+	OwnerFullName                         string  `json:"ownerFullName" gorm:"column:owner_full_name;size:100"`
+	OwnerProfileImageURLSmall             string  `json:"ownerProfileImageUrlSmall" gorm:"column:owner_profile_image_url_small;size:500"`
+	OwnerProfileImageURLMedium            string  `json:"ownerProfileImageUrlMedium" gorm:"column:owner_profile_image_url_medium;size:500"`
+	OwnerProfileImageURLLarge             string  `json:"ownerProfileImageUrlLarge" gorm:"column:owner_profile_image_url_large;size:500"`
+	Calories                              float64 `json:"calories" gorm:"column:calories;type:decimal(8,2)"`
+	BMRCalories                           float64 `json:"bmrCalories" gorm:"column:bmr_calories;type:decimal(8,2)"`
+	AverageHR                             float64 `json:"averageHR" gorm:"column:average_hr;type:decimal(5,2)"`
+	MaxHR                                 float64 `json:"maxHR" gorm:"column:max_hr;type:decimal(5,2)"`
+	AverageRunningCadenceInStepsPerMinute float64 `json:"averageRunningCadenceInStepsPerMinute" gorm:"column:average_running_cadence;type:decimal(8,4)"`
+	MaxRunningCadenceInStepsPerMinute     float64 `json:"maxRunningCadenceInStepsPerMinute" gorm:"column:max_running_cadence;type:decimal(8,2)"`
+	Steps                                 int     `json:"steps" gorm:"column:steps"`
+	UserPro                               bool    `json:"userPro" gorm:"column:user_pro"`
+	HasVideo                              bool    `json:"hasVideo" gorm:"column:has_video"`
+	TimeZoneID                            int     `json:"timeZoneId" gorm:"column:time_zone_id"`
+	BeginTimestamp                        int64   `json:"beginTimestamp" gorm:"column:begin_timestamp"`
+	SportTypeID                           int     `json:"sportTypeId" gorm:"column:sport_type_id"`
+	AvgPower                              float64 `json:"avgPower" gorm:"column:avg_power;type:decimal(8,2)"`
+	MaxPower                              float64 `json:"maxPower" gorm:"column:max_power;type:decimal(8,2)"`
+	AerobicTrainingEffect                 float64 `json:"aerobicTrainingEffect" gorm:"column:aerobic_training_effect;type:decimal(8,6)"`
+	AnaerobicTrainingEffect               float64 `json:"anaerobicTrainingEffect" gorm:"column:anaerobic_training_effect;type:decimal(8,2)"`
+	NormPower                             float64 `json:"normPower" gorm:"column:norm_power;type:decimal(8,2)"`
+	AvgVerticalOscillation                float64 `json:"avgVerticalOscillation" gorm:"column:avg_vertical_oscillation;type:decimal(8,6)"`
+	AvgGroundContactTime                  float64 `json:"avgGroundContactTime" gorm:"column:avg_ground_contact_time;type:decimal(8,6)"`
+	AvgStrideLength                       float64 `json:"avgStrideLength" gorm:"column:avg_stride_length;type:decimal(8,6)"`
+	VO2MaxValue                           float64 `json:"vO2MaxValue" gorm:"column:vo2_max_value;type:decimal(5,2)"`
+	AvgVerticalRatio                      float64 `json:"avgVerticalRatio" gorm:"column:avg_vertical_ratio;type:decimal(8,6)"`
+	DeviceID                              int64   `json:"deviceId" gorm:"column:device_id"`
+	MinTemperature                        float64 `json:"minTemperature" gorm:"column:min_temperature;type:decimal(5,2)"`
+	MaxTemperature                        float64 `json:"maxTemperature" gorm:"column:max_temperature;type:decimal(5,2)"`
+	MinElevation                          float64 `json:"minElevation" gorm:"column:min_elevation;type:decimal(8,6)"`
+	MaxElevation                          float64 `json:"maxElevation" gorm:"column:max_elevation;type:decimal(8,2)"`
+	MaxDoubleCadence                      float64 `json:"maxDoubleCadence" gorm:"column:max_double_cadence;type:decimal(8,2)"`
+	MaxVerticalSpeed                      float64 `json:"maxVerticalSpeed" gorm:"column:max_vertical_speed;type:float"`
+	Manufacturer                          string  `json:"manufacturer" gorm:"column:manufacturer;size:50"`
+	LocationName                          string  `json:"locationName" gorm:"column:location_name;size:100"`
+	LapCount                              int     `json:"lapCount" gorm:"column:lap_count"`
+	WaterEstimated                        float64 `json:"waterEstimated" gorm:"column:water_estimated;type:decimal(8,2)"`
+	TrainingEffectLabel                   string  `json:"trainingEffectLabel" gorm:"column:training_effect_label;size:50"`
+	MinActivityLapDuration                float64 `json:"minActivityLapDuration" gorm:"column:min_activity_lap_duration;type:decimal(8,6)"`
+	AerobicTrainingEffectMessage          string  `json:"aerobicTrainingEffectMessage" gorm:"column:aerobic_training_effect_message;size:100"`
+	AnaerobicTrainingEffectMessage        string  `json:"anaerobicTrainingEffectMessage" gorm:"column:anaerobic_training_effect_message;size:100"`
+	HasSplits                             bool    `json:"hasSplits" gorm:"column:has_splits"`
+	ModerateIntensityMinutes              int     `json:"moderateIntensityMinutes" gorm:"column:moderate_intensity_minutes"`
+	VigorousIntensityMinutes              int     `json:"vigorousIntensityMinutes" gorm:"column:vigorous_intensity_minutes"`
+	AvgGradeAdjustedSpeed                 float64 `json:"avgGradeAdjustedSpeed" gorm:"column:avg_grade_adjusted_speed;type:decimal(8,6)"`
+	DifferenceBodyBattery                 int     `json:"differenceBodyBattery" gorm:"column:difference_body_battery"`
+	HasHeatMap                            bool    `json:"hasHeatMap" gorm:"column:has_heat_map"`
+	FastestSplit1000                      float64 `json:"fastestSplit_1000" gorm:"column:fastest_split_1000;type:decimal(8,6)"`
+	FastestSplit1609                      float64 `json:"fastestSplit_1609" gorm:"column:fastest_split_1609;type:decimal(8,6)"`
+	HRTimeInZone1                         float64 `json:"hrTimeInZone_1" gorm:"column:hr_time_in_zone_1;type:decimal(8,3)"`
+	HRTimeInZone2                         float64 `json:"hrTimeInZone_2" gorm:"column:hr_time_in_zone_2;type:decimal(8,3)"`
+	HRTimeInZone3                         float64 `json:"hrTimeInZone_3" gorm:"column:hr_time_in_zone_3;type:decimal(8,3)"`
+	HRTimeInZone4                         float64 `json:"hrTimeInZone_4" gorm:"column:hr_time_in_zone_4;type:decimal(8,3)"`
+	HRTimeInZone5                         float64 `json:"hrTimeInZone_5" gorm:"column:hr_time_in_zone_5;type:decimal(8,3)"`
+	PowerTimeInZone1                      float64 `json:"powerTimeInZone_1" gorm:"column:power_time_in_zone_1;type:decimal(8,3)"`
+	PowerTimeInZone2                      float64 `json:"powerTimeInZone_2" gorm:"column:power_time_in_zone_2;type:decimal(8,3)"`
+	PowerTimeInZone3                      float64 `json:"powerTimeInZone_3" gorm:"column:power_time_in_zone_3;type:decimal(8,3)"`
+	PowerTimeInZone4                      float64 `json:"powerTimeInZone_4" gorm:"column:power_time_in_zone_4;type:decimal(8,3)"`
+	PowerTimeInZone5                      float64 `json:"powerTimeInZone_5" gorm:"column:power_time_in_zone_5;type:decimal(8,3)"`
+	QualifyingDive                        bool    `json:"qualifyingDive" gorm:"column:qualifying_dive"`
+	Parent                                bool    `json:"parent" gorm:"column:parent"`
+	PR                                    bool    `json:"pr" gorm:"column:pr"`
+	Favorite                              bool    `json:"favorite" gorm:"column:favorite"`
+	Purposeful                            bool    `json:"purposeful" gorm:"column:purposeful"`
+	DecoDive                              bool    `json:"decoDive" gorm:"column:deco_dive"`
+	ManualActivity                        bool    `json:"manualActivity" gorm:"column:manual_activity"`
+	AutoCalcCalories                      bool    `json:"autoCalcCalories" gorm:"column:auto_calc_calories"`
+	ElevationCorrected                    bool    `json:"elevationCorrected" gorm:"column:elevation_corrected"`
+	ATPActivity                           bool    `json:"atpActivity" gorm:"column:atp_activity"`
 
 	// Foreign key columns
 	ActivityTypeID int `gorm:"column:activity_type_id;index"`

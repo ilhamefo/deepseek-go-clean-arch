@@ -15,5 +15,5 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 		WithCredentials: true,
 	}))
 
-	app.Get("/refresh", h.Refresh)
+	app.Post("/refresh", h.Refresh)
 }
