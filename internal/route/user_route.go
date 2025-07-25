@@ -16,4 +16,5 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 	}))
 
 	app.Post("/refresh", h.Refresh)
+	app.Post("/splits/:activityID", h.Splits)
 }

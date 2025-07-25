@@ -36,6 +36,75 @@ func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *
 	}
 }
 
+func (s *GarminService) FetchSplits(ctx context.Context, r *request.RefreshActivitiesRequest, activityID string) (res *domain.ActivitySplitsResponse, err error) {
+	url := fmt.Sprintf("https://connect.garmin.com/activity-service/activity/%s/splits", activityID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return nil, err
+	}
+
+	// Header
+	req.Header.Set("accept", "application/json, text/plain, */*")
+	req.Header.Set("authorization", "Bearer "+r.Token)
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	client := &http.Client{
+		Timeout: 30 * time.Second, // Add timeout
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		s.logger.Warn("request_failed_retrying",
+			zap.Error(err),
+		)
+
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Handle rate limiting
+	if resp.StatusCode == 429 {
+		return nil, fmt.Errorf("API rate limited after %d attempts", resp.StatusCode)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		errBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			s.logger.Error("error_read_error_response", zap.Error(err))
+			return nil, err
+		}
+
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 && resp.StatusCode != 429 {
+			return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(errBody))
+		}
+
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(errBody))
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return nil, err
+	}
+
+	err = json.Unmarshal(body, &res)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (s *GarminService) Refresh(ctx context.Context, r *request.RefreshActivitiesRequest) (res []*domain.Activity, err error) {
 	const pageSize = 20 // Increase page size for better performance
 	var allActivities []*domain.Activity
@@ -268,5 +337,6 @@ func (s *GarminService) Upsert(models []*domain.Activity) (err error) {
 	}
 
 	s.logger.Info("upsert_completed", zap.Int("total_activities", len(models)))
+
 	return nil
 }

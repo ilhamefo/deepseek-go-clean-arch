@@ -19,6 +19,62 @@ func NewGarminRepo(
 	return &GarminRepo{db: db, logger: logger}
 }
 
+func (r *GarminRepo) UpsertSplits(activityID int64, splits *domain.ActivitySplitsResponse) (err error) {
+	if splits == nil {
+		r.logger.Info("no splits data to upsert")
+		return nil
+	}
+
+	tx := r.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	// Delete existing laps for this activity
+	if err := tx.Where("activity_id = ?", activityID).Delete(&domain.LapDTO{}).Error; err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to delete existing laps", zap.Error(err), zap.Int64("activity_id", activityID))
+		return err
+	}
+
+	// Insert new laps
+	if len(splits.LapDTOs) > 0 {
+		for i, lap := range splits.LapDTOs {
+			lap.ActivityID = activityID
+			if err := tx.Omit("id").Create(&lap).Error; err != nil {
+				tx.Rollback()
+				r.logger.Error("failed to create lap",
+					zap.Error(err),
+					zap.Int64("activity_id", activityID),
+					zap.Int("lap_index", i))
+				return err
+			}
+		}
+		r.logger.Debug("laps inserted successfully",
+			zap.Int64("activity_id", activityID),
+			zap.Int("laps_count", len(splits.LapDTOs)))
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	r.logger.Info("splits upserted successfully",
+		zap.Int64("activity_id", activityID),
+		zap.Int("laps_count", len(splits.LapDTOs)))
+
+	return nil
+}
+
 func (r *GarminRepo) Update(activities []*domain.Activity) (err error) {
 	if len(activities) == 0 {
 		r.logger.Info("no activities to update")
