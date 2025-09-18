@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -275,18 +276,13 @@ func (s *ExporterService) ExportRekapPelanggan(req *request.RekapRequest) (err e
 	var filename string
 	var tanggal string = strings.ReplaceAll(req.DateStart+"_"+req.DateEnd, "/", "")
 
-	s.logger.Info(
-		"starting_query",
-	)
+	s.logger.Info("starting_query")
 
-	res, err := s.repo.FindPelanggan(req)
-	if err != nil {
-		return err
-	}
+	batchSize := 25_000 * 6
 
-	s.logger.Info(
-		"done_get_data",
-	)
+	offset := 0
+
+	var files []string
 
 	if len(req.Induk) > 0 {
 		filename = "INDUK_" + req.Induk + "_" + tanggal
@@ -298,16 +294,86 @@ func (s *ExporterService) ExportRekapPelanggan(req *request.RekapRequest) (err e
 		filename = "NASIONAL" + "_" + tanggal
 	}
 
-	files, err := s.generateXlsxPelanggan(res, filename)
+	// for {
+	// 	// Prepare batch request
+	batchReq := *req
+	batchReq.Limit = batchSize
+	batchReq.Offset = offset
+
+	// 	batch, err := s.repo.FindPelanggan(&batchReq)
+	// 	if err != nil {
+	// 		s.logger.Error("error_find_pelanggan_batch", zap.Error(err))
+	// 		return err
+	// 	}
+
+	// 	if len(batch) == 0 {
+	// 		break
+	// 	}
+
+	// 	s.logger.Info("processing_batch", zap.Int("offset", offset), zap.Int("batch_size", len(batch)))
+
+	// 	batchFiles, err := s.generateXlsxPelanggan(batch, filename)
+	// 	if err != nil {
+	// 		s.logger.Error("error_generate_xlsx_pelanggan", zap.Error(err))
+	// 		return err
+	// 	}
+	// 	files = append(files, batchFiles...)
+
+	// 	// Free unused memory after each batch
+	// 	runtime.GC()
+
+	// 	offset += batchSize
+
+	// 	// If batch size is less than requested, last batch reached
+	// 	if len(batch) < batchSize {
+	// 		break
+	// 	}
+	// }
+
+	count, err := s.repo.CountPelanggan(req)
 	if err != nil {
-		s.logger.Error(
-			"error_generate_excel",
-			zap.Error(err),
-		)
+		s.logger.Error("error_count_pelanggan", zap.Error(err))
 		return err
 	}
 
-	return s.compressFiles(files, filesDir+filename+".tar.gz")
+	totalRows := int(count)
+
+	numBatches := (totalRows + batchSize - 1) / batchSize
+
+	s.logger.Info("info_count_pelanggan", zap.Int64("count", count), zap.Any("num_of_batch", numBatches))
+
+	for batchNum := 0; batchNum < numBatches; batchNum++ {
+		start := batchNum * batchSize
+		end := start + batchSize
+		if end > totalRows {
+			end = totalRows
+		}
+
+		pelanggan, err := s.repo.FindPelanggan(&batchReq)
+		if err != nil {
+			s.logger.Error("error_find_pelanggan_batch", zap.Error(err))
+			return err
+		}
+
+		s.logger.Info("info_query_pelanggan", zap.Any("request", batchReq))
+
+		batchFilename, err := s.generateXlsxPelanggan(pelanggan, filename, batchNum)
+		if err != nil {
+			return err
+		}
+
+		files = append(files, batchFilename...)
+
+		runtime.GC()
+
+		offset += batchSize
+
+		batchReq.Offset = offset
+	}
+
+	s.logger.Info("done_get_data", zap.Int("total_files", len(files)))
+
+	return nil
 }
 
 func (s *ExporterService) generateXlsx(res []*domain.Transaksi, filename string) (files []string, err error) {
@@ -474,7 +540,7 @@ var pelangganHeaders = []string{
 	"No.", "ID PELANGGAN", "NAMA", "CONSUMER NAME", "TIPE ENERGI", "KWH", "ALAMAT", "METER NO", "TIPE METER", "UNIT UPI", "NAMA UNIT UPI", "UNIT AP", "NAMA UNIT AP", "UNIT UP", "NAMA UNIT UP", "CREATED AT",
 }
 
-func (s *ExporterService) generateXlsxPelanggan(res []*domain.Pelanggan, filename string) (files []string, err error) {
+func (s *ExporterService) generateXlsxPelanggan(res []*domain.Pelanggan, filename string, batchNum int) (files []string, err error) {
 	sheetName := "Rekap Pelanggan"
 	batchSize := 25_000 * 6
 	totalRows := len(res)
@@ -493,7 +559,7 @@ func (s *ExporterService) generateXlsxPelanggan(res []*domain.Pelanggan, filenam
 			end = totalRows
 		}
 
-		batchFilename, err := s.createPelangganBatchFile(res[start:end], filename, batch, sheetName)
+		batchFilename, err := s.createPelangganBatchFile(res, filename, batchNum, sheetName)
 		if err != nil {
 			return files, err
 		}

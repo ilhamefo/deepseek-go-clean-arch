@@ -117,4 +117,5 @@ type ExporterRepository interface {
 	GetAllUnit() (result []*Regional, err error)
 	FindTransaksi(req *request.RekapRequest) ([]*Transaksi, error)
 	FindPelanggan(req *request.RekapRequest) ([]*Pelanggan, error)
+	CountPelanggan(req *request.RekapRequest) (result int64, err error)
 }

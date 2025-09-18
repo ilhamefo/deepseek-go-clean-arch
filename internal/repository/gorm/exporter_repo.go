@@ -55,6 +55,13 @@ func (r *ExporterRepo) FindTransaksi(req *request.RekapRequest) (result []*domai
 		query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
+	if req.Limit > 0 {
+		query = query.Limit(req.Limit)
+	}
+	if req.Offset > 0 {
+		query = query.Offset(req.Offset)
+	}
+
 	err = query.Find(&result).Error
 
 	return result, err
@@ -86,7 +93,49 @@ func (r *ExporterRepo) FindPelanggan(req *request.RekapRequest) (result []*domai
 		query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
+	if req.Limit > 0 {
+		query = query.Limit(req.Limit)
+	}
+
+	if req.Offset > 0 {
+		query = query.Offset(req.Offset)
+	}
+
 	err = query.Find(&result).Error
 
 	return result, err
+}
+
+func (r *ExporterRepo) CountPelanggan(req *request.RekapRequest) (result int64, err error) {
+	query := r.db.Model(&domain.Pelanggan{})
+
+	if len(req.Induk) > 0 {
+		query.Where("unit_upi = ?", req.Induk)
+	} else if len(req.Area) > 0 {
+		query.Where("unit_ap = ?", req.Area)
+	} else if len(req.UnitCode) > 0 {
+		query.Where("unit_up = ?", req.UnitCode)
+	}
+
+	if len(req.DateStart) > 0 && len(req.DateEnd) > 0 {
+		startDate, err := helper.StartDateParser(req.DateStart)
+		if err != nil {
+			return result, err
+		}
+
+		endDate, err := helper.EndDateParser(req.DateEnd)
+		if err != nil {
+			return result, err
+		}
+
+		query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+
+	err = query.Count(&result).Error
+	if err != nil {
+		return result, err
+	}
+
+	return result, err
+
 }
