@@ -20,7 +20,7 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 
-	_ "event-registration/docs"
+	_ "event-registration/exporter_docs"
 )
 
 // @title Fiber Example API
