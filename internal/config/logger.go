@@ -52,7 +52,13 @@ func NewZapLogger(cfg *common.Config) *zap.Logger {
 
 	defer logger.Sync()
 
-	return logger
+	fields := []zap.Field{
+		zap.String("service", cfg.DDService),
+		zap.String("env", cfg.DDENV),
+		zap.String("version", cfg.DDVersion),
+	}
+
+	return logger.With(fields...)
 }
 
 type ZapLogger struct {

@@ -14,6 +14,8 @@ import (
 
 	_ "event-registration/docs"
 
+	fibertrace "github.com/DataDog/dd-trace-go/contrib/gofiber/fiber.v2/v2"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
@@ -31,6 +33,8 @@ import (
 // @host 127.0.0.1:5051
 // @BasePath /
 func main() {
+
+	defer tracer.Stop()
 	app := fx.New(
 		// Provide dependencies
 		fx.Provide(
@@ -58,6 +62,17 @@ func main() {
 
 			app.Use(m.SentryMiddleware(sentryOpts))
 			app.Use(m.NewZapLoggerMiddleware(logger))
+
+			tracer.Start(
+				tracer.WithService(cfg.DDService),
+				tracer.WithEnv(cfg.DDENV),
+				tracer.WithServiceVersion(cfg.DDVersion),
+				tracer.WithAgentAddr("localhost:8126"), // jika perlu override
+			)
+
+			app.Use(fibertrace.Middleware(
+				fibertrace.WithService(cfg.DDService),
+			))
 
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {

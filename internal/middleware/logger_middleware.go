@@ -1,14 +1,18 @@
 package middleware
 
 import (
+	"strconv"
 	"time"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
 
 func (m *Middleware) NewZapLoggerMiddleware(logger *zap.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		fields := []zap.Field{}
+
 		start := time.Now()
 
 		ip := c.Get("CF-Connecting-IP")
@@ -26,6 +30,16 @@ func (m *Middleware) NewZapLoggerMiddleware(logger *zap.Logger) fiber.Handler {
 		latency := time.Since(start)
 		userAgent := c.Get("User-Agent")
 		referer := c.Get("Referer")
+
+		if span, ok := tracer.SpanFromContext(c.Context()); ok && span != nil {
+			sc := span.Context()
+			fields = append(fields,
+				zap.String("dd.trace_id", sc.TraceID()),
+				zap.String("dd.span_id", strconv.FormatUint(sc.SpanID(), 10)),
+			)
+		}
+
+		logger.With(fields...)
 
 		logger.Info("incoming_request",
 			zap.String("ip", ip),

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"go.uber.org/zap"
 )
 
@@ -23,16 +24,22 @@ func min(x, y int) int {
 }
 
 type GarminService struct {
-	repo   domain.GarminRepository
-	logger *zap.Logger
-	config *common.Config
+	repo       domain.GarminRepository
+	logger     *zap.Logger
+	config     *common.Config
+	httpClient *http.Client
 }
 
 func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config) *GarminService {
+	httpClient := httptrace.WrapClient(&http.Client{
+		Timeout: 30 * time.Second,
+	}, httptrace.WithService("http-client"))
+
 	return &GarminService{
-		repo:   repo,
-		logger: logger,
-		config: config,
+		repo:       repo,
+		logger:     logger,
+		config:     config,
+		httpClient: httpClient,
 	}
 }
 
@@ -55,11 +62,7 @@ func (s *GarminService) FetchSplits(ctx context.Context, r *request.RefreshActiv
 	req.Header.Set("Cookie", r.Cookies)
 
 	// Kirim request
-	client := &http.Client{
-		Timeout: 30 * time.Second, // Add timeout
-	}
-
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		s.logger.Warn("request_failed_retrying",
 			zap.Error(err),
@@ -191,10 +194,7 @@ func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.Refr
 		req.Header.Set("Cookie", r.Cookies)
 
 		// Kirim request
-		client := &http.Client{
-			Timeout: 30 * time.Second, // Add timeout
-		}
-		resp, err := client.Do(req)
+		resp, err := s.httpClient.Do(req)
 		if err != nil {
 			lastErr = err
 			s.logger.Warn("request_failed_retrying",

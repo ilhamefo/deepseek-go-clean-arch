@@ -57,6 +57,13 @@ type Config struct {
 	VCCDBUser                 string        `mapstructure:"POSTGRES_VCC_USER"`
 	VCCDBPassword             string        `mapstructure:"POSTGRES_VCC_PASSWORD"`
 	VCCDBSchema               string        `mapstructure:"POSTGRES_VCC_SCHEMA"`
+	DDService                 string        `mapstructure:"DD_SERVICE"`
+	DDApiKey                  string        `mapstructure:"DD_API_KEY"`
+	DDSite                    string        `mapstructure:"DD_SITE"`
+	DDENV                     string        `mapstructure:"DD_ENV"`
+	DDVersion                 string        `mapstructure:"DD_VERSION"`
+	DDAentHost                string        `mapstructure:"DD_AGENT_HOST"`
+	DDTraceAgentPort          string        `mapstructure:"DD_TRACE_AGENT_PORT"`
 }
 
 func Load() (*Config, error) {
