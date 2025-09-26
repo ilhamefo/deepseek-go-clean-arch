@@ -44,7 +44,7 @@ func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *
 }
 
 func (s *GarminService) FetchSplits(ctx context.Context, r *request.RefreshActivitiesRequest, activityID string) (res *domain.ActivitySplitsResponse, err error) {
-	url := fmt.Sprintf("https://connect.garmin.com/activity-service/activity/%s/splits", activityID)
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activity-service/activity/%s/splits", activityID)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -53,10 +53,9 @@ func (s *GarminService) FetchSplits(ctx context.Context, r *request.RefreshActiv
 	}
 
 	// Header
-	req.Header.Set("accept", "application/json, text/plain, */*")
-	req.Header.Set("authorization", "Bearer "+r.Token)
-	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("accept", "*/*")
 	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
 
 	// Cookie
 	req.Header.Set("Cookie", r.Cookies)
@@ -108,19 +107,19 @@ func (s *GarminService) FetchSplits(ctx context.Context, r *request.RefreshActiv
 	return res, nil
 }
 
-func (s *GarminService) Refresh(ctx context.Context, r *request.RefreshActivitiesRequest) (res []*domain.Activity, err error) {
+func (s *GarminService) Refresh(ctx context.Context, r *request.RefreshActivitiesRequest) (err error) {
 	const pageSize = 20 // Increase page size for better performance
 	var allActivities []*domain.Activity
 	start := 0
 
-	s.logger.Info("starting_garmin_data_fetch", zap.String("token", r.Token[:20]+"..."))
+	// s.logger.Info("starting_garmin_data_fetch", zap.String("token", r.Token[:20]+"..."))
 
 	for {
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
 			s.logger.Warn("context_cancelled_during_fetch", zap.Int("fetched_so_far", len(allActivities)))
-			return allActivities, ctx.Err()
+			return ctx.Err()
 		default:
 		}
 
@@ -131,7 +130,7 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.RefreshActivitie
 				zap.Int("start", start),
 				zap.Int("page_size", pageSize),
 			)
-			return allActivities, err
+			return err
 		}
 
 		// Add to total activities
@@ -164,15 +163,15 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.RefreshActivitie
 		err = s.Upsert(allActivities)
 		if err != nil {
 			s.logger.Error("error_upsert_all", zap.Error(err))
-			return allActivities, err
+			return err
 		}
 	}
 
-	return allActivities, nil
+	return nil
 }
 
 func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.RefreshActivitiesRequest, start, limit int) ([]*domain.Activity, bool, error) {
-	url := fmt.Sprintf("https://connect.garmin.com/activitylist-service/activities/search/activities?limit=%d&start=%d", limit, start)
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activitylist-service/activities/search/activities?limit=%d&start=%d", limit, start)
 
 	maxRetries := 3
 	var lastErr error
@@ -185,10 +184,10 @@ func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.Refr
 		}
 
 		// Header
-		req.Header.Set("accept", "application/json, text/plain, */*")
-		req.Header.Set("authorization", "Bearer "+r.Token)
+		req.Header.Set("accept", "*/*")
 		req.Header.Set("di-backend", "connectapi.garmin.com")
-		req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+		req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+		req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
 
 		// Cookie
 		req.Header.Set("Cookie", r.Cookies)
@@ -339,4 +338,71 @@ func (s *GarminService) Upsert(models []*domain.Activity) (err error) {
 	s.logger.Info("upsert_completed", zap.Int("total_activities", len(models)))
 
 	return nil
+}
+
+func (s *GarminService) HeartRateByDate(ctx context.Context, r *request.HeartRateByDateRequest) (err error) {
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/wellness-service/wellness/dailyHeartRate?date=%s", r.Date)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return err
+	}
+
+	// Header
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return err
+	}
+
+	var hrData *domain.HeartRate
+	err = json.Unmarshal(body, &hrData)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body[:min(500, len(body))])))
+		return err
+	}
+
+	s.logger.Error("read_response", zap.Any("response_api", hrData))
+
+	return s.upsertHeartRateByDate(ctx, hrData)
+}
+
+func (s *GarminService) upsertHeartRateByDate(ctx context.Context, models *domain.HeartRate) (err error) {
+	if models == nil {
+		s.logger.Info("no_heart_rate_data_to_upsert")
+		return nil
+	}
+
+	s.logger.Info("starting_upsert_heart_rate", zap.Int64("user_profile_pk", models.UserProfilePK), zap.String("calendar_date", models.CalendarDate))
+
+	err = s.repo.UpsertHeartRateByDate(models)
+	if err != nil {
+		s.logger.Error("error_upsert_heart_rate", zap.Error(err), zap.Int64("user_profile_pk", models.UserProfilePK), zap.String("calendar_date", models.CalendarDate))
+		return err
+	}
+
+	return err
 }

@@ -2,6 +2,7 @@ package domain
 
 type GarminRepository interface {
 	Update(activities []*Activity) error
+	UpsertHeartRateByDate(data *HeartRate) error
 }
 
 type ActivityType struct {
@@ -256,4 +257,44 @@ func (LapDTO) TableName() string {
 type ActivitySplitsResponse struct {
 	ActivityID int64     `json:"activityId"`
 	LapDTOs    []*LapDTO `json:"lapDTOs"`
+}
+
+// HeartRateValueDescriptor represents the descriptor for heart rate values
+type HeartRateValueDescriptor struct {
+	Key   string `json:"key" gorm:"column:key;size:50"`
+	Index int    `json:"index" gorm:"column:index"`
+}
+
+// HeartRateResponse represents the complete heart rate response from Garmin API
+type HeartRate struct {
+	ID                               string `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK                    int64  `json:"userProfilePK" gorm:"column:user_profile_pk;primaryKey"`
+	CalendarDate                     string `json:"calendarDate" gorm:"column:calendar_date;type:date"`
+	StartTimestampGMT                string `json:"startTimestampGMT" gorm:"column:start_timestamp_gmt;type:timestamp"`
+	EndTimestampGMT                  string `json:"endTimestampGMT" gorm:"column:end_timestamp_gmt;type:timestamp"`
+	StartTimestampLocal              string `json:"startTimestampLocal" gorm:"column:start_timestamp_local;type:timestamp"`
+	EndTimestampLocal                string `json:"endTimestampLocal" gorm:"column:end_timestamp_local;type:timestamp"`
+	MaxHeartRate                     int    `json:"maxHeartRate" gorm:"column:max_heart_rate"`
+	MinHeartRate                     int    `json:"minHeartRate" gorm:"column:min_heart_rate"`
+	RestingHeartRate                 int    `json:"restingHeartRate" gorm:"column:resting_heart_rate"`
+	LastSevenDaysAvgRestingHeartRate int    `json:"lastSevenDaysAvgRestingHeartRate" gorm:"column:last_seven_days_avg_resting_heart_rate"`
+
+	// Arrays (tidak disimpan di database, hanya untuk parsing JSON)
+	HeartRateValues           [][]int                    `json:"heartRateValues" gorm:"-"`
+	HeartRateValueDescriptors []HeartRateValueDescriptor `json:"heartRateValueDescriptors" gorm:"-"`
+}
+
+func (HeartRate) TableName() string {
+	return "heart_rates"
+}
+
+type HeartRateDetail struct {
+	HeartRate     int    `json:"heartrate" gorm:"column:heartrate"`
+	Timestamp     int    `json:"timestamp" gorm:"column:timestamp"`
+	UserProfilePK int64  `json:"userProfilePK" gorm:"column:user_profile_pk"`
+	CalendarDate  string `json:"calendarDate" gorm:"column:calendar_date;type:date"`
+}
+
+func (HeartRateDetail) TableName() string {
+	return "heart_rate_details"
 }

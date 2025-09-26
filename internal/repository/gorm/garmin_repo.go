@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type GarminRepo struct {
@@ -189,6 +190,79 @@ func (r *GarminRepo) processRelatedData(tx *gorm.DB, activity *domain.Activity) 
 			}
 		}
 	}
+
+	return nil
+}
+
+func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
+	if data == nil {
+		r.logger.Info("no heart rate data to upsert")
+		return nil
+	}
+
+	tx := r.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	// Delete existing heart rate for this activity and date
+	if err := tx.Where("user_profile_pk = ? AND calendar_date = ?", data.UserProfilePK, data.CalendarDate).Delete(&domain.HeartRate{}).Error; err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to delete existing heart rate", zap.Error(err), zap.Int64("user_profile_pk", data.UserProfilePK), zap.String("calendar_date", data.CalendarDate))
+		return err
+	}
+
+	// Insert new heart rate
+	if err := tx.Omit("ID").Clauses(clause.Returning{}).Create(data).Error; err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to create heart rate", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
+		return err
+	}
+
+	// insert details
+	if len(data.HeartRateValues) > 0 {
+
+		var details []domain.HeartRateDetail
+
+		for detail := range data.HeartRateValues {
+			detail := domain.HeartRateDetail{
+				HeartRate:     data.HeartRateValues[detail][1],
+				Timestamp:     data.HeartRateValues[detail][0],
+				UserProfilePK: data.UserProfilePK,
+				CalendarDate:  data.CalendarDate,
+			}
+
+			details = append(details, detail)
+		}
+
+		r.logger.Info("heart rate details to insert", zap.Int("count", len(details)), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate), zap.Any("details", details))
+
+		if err := tx.Where("user_profile_pk = ? AND calendar_date = ?", data.UserProfilePK, data.CalendarDate).Delete(&domain.HeartRateDetail{}).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to delete existing heart rate details", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
+			return err
+		}
+
+		if err := tx.Create(details).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to create heart rate details", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
+			return err
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	r.logger.Info("heart rate upserted successfully", zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
 
 	return nil
 }

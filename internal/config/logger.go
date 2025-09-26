@@ -17,7 +17,7 @@ func NewZapLogger(cfg *common.Config) *zap.Logger {
 	var core zapcore.Core
 
 	logRotator := &lumberjack.Logger{
-		Filename:   "logs.txt",
+		Filename:   "logs/app.log",
 		MaxSize:    10,
 		MaxBackups: 3,
 		MaxAge:     28,

@@ -143,6 +143,79 @@ CREATE TABLE split_summaries (
     FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
 );
 
+-- Tabel untuk heart rate responses (data harian heart rate)
+CREATE TABLE heart_rates (
+    user_profile_pk BIGINT PRIMARY KEY,
+    calendar_date DATE,
+    start_timestamp_gmt TIMESTAMP,
+    end_timestamp_gmt TIMESTAMP,
+    start_timestamp_local TIMESTAMP,
+    end_timestamp_local TIMESTAMP,
+    max_heart_rate INTEGER,
+    min_heart_rate INTEGER,
+    resting_heart_rate INTEGER,
+    last_seven_days_avg_resting_heart_rate INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Tabel untuk section types (jika diperlukan untuk lap data)
+CREATE TABLE section_types (
+    id INTEGER PRIMARY KEY,
+    key VARCHAR(50),
+    section_type_key VARCHAR(50)
+);
+
+-- Tabel untuk activity laps (data lap per aktivitas)
+CREATE TABLE activity_laps (
+    id VARCHAR(255) PRIMARY KEY,
+    activity_id BIGINT,
+    start_time_gmt VARCHAR(50),
+    start_latitude DECIMAL(15, 12),
+    start_longitude DECIMAL(15, 12),
+    end_latitude DECIMAL(15, 12),
+    end_longitude DECIMAL(15, 12),
+    distance DECIMAL(10, 5),
+    duration DECIMAL(10, 5),
+    moving_duration DECIMAL(10, 5),
+    elapsed_duration DECIMAL(10, 5),
+    elevation_gain DECIMAL(8, 2),
+    elevation_loss DECIMAL(8, 2),
+    max_elevation DECIMAL(8, 2),
+    min_elevation DECIMAL(8, 2),
+    average_speed DECIMAL(8, 5),
+    average_moving_speed DECIMAL(8, 5),
+    max_speed DECIMAL(8, 5),
+    calories DECIMAL(8, 2),
+    bmr_calories DECIMAL(8, 2),
+    average_hr DECIMAL(5, 2),
+    max_hr DECIMAL(5, 2),
+    average_run_cadence DECIMAL(8, 4),
+    max_run_cadence DECIMAL(8, 2),
+    average_temperature DECIMAL(5, 2),
+    max_temperature DECIMAL(5, 2),
+    min_temperature DECIMAL(5, 2),
+    average_power DECIMAL(8, 2),
+    max_power DECIMAL(8, 2),
+    min_power DECIMAL(8, 2),
+    normalized_power DECIMAL(8, 2),
+    total_work DECIMAL(12, 6),
+    ground_contact_time DECIMAL(8, 6),
+    stride_length DECIMAL(8, 6),
+    vertical_oscillation DECIMAL(8, 6),
+    vertical_ratio DECIMAL(8, 6),
+    max_vertical_speed DECIMAL(8, 12),
+    avg_grade_adjusted_speed DECIMAL(8, 6),
+    lap_index INTEGER,
+    intensity_type VARCHAR(20),
+    message_index INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (activity_id) REFERENCES activities(activity_id),
+    INDEX idx_activity_id (activity_id),
+    INDEX idx_lap_index (lap_index)
+);
+
 -- Menambahkan foreign key references ke tabel utama
 ALTER TABLE activities 
 ADD COLUMN activity_type_id INTEGER,
