@@ -376,7 +376,7 @@ func (r *GarminRepo) UpsertUserSettings(data *domain.UserSetting) (err error) {
 		}).Create(&data.UserData.HeartRateFormat).Error
 	if err != nil {
 		tx.Rollback()
-		r.logger.Error("failed to upsert user power format", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		r.logger.Error("failed to upsert user heart rate format", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
 		return err
 	}
 
