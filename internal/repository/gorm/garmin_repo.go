@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"event-registration/internal/core/domain"
+	"fmt"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -265,4 +266,119 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 	r.logger.Info("heart rate upserted successfully", zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
 
 	return nil
+}
+
+func (r *GarminRepo) UpsertUserSettings(data *domain.UserSetting) (err error) {
+
+	if data == nil {
+		return fmt.Errorf("no user settings data to upsert")
+	}
+
+	tx := r.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	err = tx.Clauses(
+		clause.Returning{Columns: []clause.Column{
+			{Name: "id"},
+		}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: true,
+		}).Create(data).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert user settings", zap.Error(err), zap.Int64("id", data.ID))
+		return err
+	}
+
+	data.UserData.UserProfilePK = data.ID
+	data.UserSleep.UserProfilePK = data.ID
+
+	for i := range data.UserSleepWindows {
+		data.UserSleepWindows[i].UserProfilePK = data.ID
+	}
+
+	data.UserData.PowerFormat.UserProfilePK = data.ID
+	data.UserData.HeartRateFormat.UserProfilePK = data.ID
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{
+			{Name: "id"},
+		}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_profile_pk"}},
+			UpdateAll: true,
+		}).Create(&data.UserData).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert user data", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		return err
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{
+			{Name: "id"},
+		}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_profile_pk"}},
+			UpdateAll: true,
+		}).Create(&data.UserSleep).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert user sleep", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		return err
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{
+			{Name: "id"},
+		}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_profile_pk"}, {Name: "sleep_window_frequency"}},
+			UpdateAll: true,
+		}).Create(&data.UserSleepWindows).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert user sleep windows", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		return err
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{
+			{Name: "id"},
+		}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_profile_pk"}},
+			UpdateAll: true,
+		}).Create(&data.UserData.PowerFormat).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert user power format", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		return err
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{
+			{Name: "id"},
+		}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_profile_pk"}},
+			UpdateAll: true,
+		}).Create(&data.UserData.HeartRateFormat).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert user power format", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		return err
+	}
+
+	return tx.Commit().Error
 }

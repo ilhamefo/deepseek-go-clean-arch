@@ -61,7 +61,7 @@ func main() {
 		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *common.Config, logger *zap.Logger, m *middleware.Middleware, sentryOpts sentry.ClientOptions) {
 
 			app.Use(m.SentryMiddleware(sentryOpts))
-			app.Use(m.NewZapLoggerMiddleware(logger))
+			// app.Use(m.NewZapLoggerMiddleware(logger))
 
 			tracer.Start(
 				tracer.WithService(cfg.DDService),

@@ -32,7 +32,7 @@ func NewGarminHandler(service *service.GarminService, handler *common.Handler) *
 // @Produce  json
 // @Router /refresh [post]
 func (h *GarminHandler) Refresh(c *fiber.Ctx) error {
-	request := new(request.RefreshActivitiesRequest)
+	request := new(request.GarminBasicRequest)
 
 	if err := c.BodyParser(request); err != nil {
 		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
@@ -61,7 +61,7 @@ func (h *GarminHandler) Refresh(c *fiber.Ctx) error {
 // @Router /splits/{activityID} [post]
 func (h *GarminHandler) Splits(c *fiber.Ctx) error {
 	requestActivityID := new(request.ActivityRequest)
-	request := new(request.RefreshActivitiesRequest)
+	request := new(request.GarminBasicRequest)
 
 	if err := c.BodyParser(request); err != nil {
 		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
@@ -84,7 +84,7 @@ func (h *GarminHandler) Splits(c *fiber.Ctx) error {
 }
 
 // Refresh godoc
-// @Summary Refresh
+// @Summary Heart Rate By Date
 // @Description This endpoint is used to get Garmin heart rate by date.
 // @Tags Garmin
 // @Accept  json
@@ -103,6 +103,60 @@ func (h *GarminHandler) GetHeartRateByDate(c *fiber.Ctx) error {
 	}
 
 	err := h.service.HeartRateByDate(c.Context(), request)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, nil)
+}
+
+// User Profile godoc
+// @Summary User Profile
+// @Description This endpoint is used to get Garmin user profile.
+// @Tags Garmin
+// @Accept  json
+// @Param request body request.RefreshActivitiesRequest false "..."
+// @Produce  json
+// @Router /user-profile [post]
+func (h *GarminHandler) GetUserProfile(c *fiber.Ctx) error {
+	request := new(request.GarminBasicRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	response, err := h.service.GetUserProfile(c.Context(), request)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, response)
+}
+
+// Refresh godoc
+// @Summary Refresh
+// @Description This endpoint is used to get Garmin heart rate by date.
+// @Tags Garmin
+// @Accept  json
+// @Param request body request.StepByDateRequest false "..."
+// @Produce  json
+// @Router /heart-rate-by-date [post]
+func (h *GarminHandler) GetStepByDate(c *fiber.Ctx) error {
+	request := new(request.StepByDateRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	err := h.service.StepByDate(c.Context(), request)
 	if err != nil {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}

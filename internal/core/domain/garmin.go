@@ -3,6 +3,7 @@ package domain
 type GarminRepository interface {
 	Update(activities []*Activity) error
 	UpsertHeartRateByDate(data *HeartRate) error
+	UpsertUserSettings(data *UserSetting) (err error)
 }
 
 type ActivityType struct {
@@ -297,4 +298,17 @@ type HeartRateDetail struct {
 
 func (HeartRateDetail) TableName() string {
 	return "heart_rate_details"
+}
+
+type StepDetail struct {
+	StartGMT              string `json:"startGMT" gorm:"column:start_gmt;type:timestamp"`
+	EndGMT                string `json:"endGMT" gorm:"column:end_gmt;type:timestamp"`
+	Steps                 int    `json:"steps" gorm:"column:steps"`
+	Pushes                int    `json:"pushes" gorm:"column:pushes"`
+	PrimaryActivityLevel  string `json:"primaryActivityLevel" gorm:"column:primary_activity_level;size:50"`
+	ActivityLevelConstant bool   `json:"activityLevelConstant" gorm:"column:activity_level_constant"`
+}
+
+func (StepDetail) TableName() string {
+	return "step_details"
 }
