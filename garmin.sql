@@ -454,6 +454,25 @@ CREATE TABLE "public"."user_available_training_days" (
 )
 ;
 
+ALTER TABLE "public"."user_available_training_days" 
+  ADD CONSTRAINT "user_available_training_days_unique_fields" UNIQUE ("user_profile_pk");
+  
+-- ----------------------------
+-- Table structure for user_preferred_long_training_days
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_preferred_long_training_days";
+CREATE TABLE "public"."user_preferred_long_training_days" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "days" VARCHAR(50)[],
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+ALTER TABLE "public"."user_preferred_long_training_days" 
+  ADD CONSTRAINT "user_preferred_long_training_days_unique_fields" UNIQUE ("user_profile_pk");
+
 -- ----------------------------
 -- Table structure for weather_locations
 -- ----------------------------

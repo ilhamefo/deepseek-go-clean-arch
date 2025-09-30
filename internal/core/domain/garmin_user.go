@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/lib/pq"
+
 type Weight struct {
 	Source      string  `json:"source" gorm:"column:source;size:50"`
 	ParsedValue float64 `json:"parsedValue" gorm:"column:parsed_value"`
@@ -117,6 +119,26 @@ type UserData struct {
 
 func (UserData) TableName() string {
 	return "user_data"
+}
+
+type PreferredLongTrainingDays struct {
+	ID            string         `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK int64          `json:"userProfilePK" gorm:"column:user_profile_pk;index"`
+	Days          pq.StringArray `json:"days" gorm:"column:days;type:varchar[]"`
+}
+
+func (PreferredLongTrainingDays) TableName() string {
+	return "user_preferred_long_training_days"
+}
+
+type AvailableTrainingDays struct {
+	ID            string         `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK int64          `json:"userProfilePK" gorm:"column:user_profile_pk;index"`
+	Days          pq.StringArray `json:"days" gorm:"column:days;type:varchar[]"`
+}
+
+func (AvailableTrainingDays) TableName() string {
+	return "user_available_training_days"
 }
 
 type UserSleep struct {

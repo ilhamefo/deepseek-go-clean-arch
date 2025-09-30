@@ -12,3 +12,4 @@ main.exe
 exporter_docs
 /logs
 *.exe
+/responses

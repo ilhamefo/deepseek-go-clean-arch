@@ -320,6 +320,16 @@ func (r *GarminRepo) UpsertUserSettings(data *domain.UserSetting) (err error) {
 		return err
 	}
 
+	if err := r.upsertAvailableTrainingDays(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertPreferredLongTrainingDays(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return tx.Commit().Error
 }
 
@@ -426,6 +436,52 @@ func (r *GarminRepo) upsertHydrationContainers(tx *gorm.DB, data *domain.UserSet
 			}).Create(&data.UserData.HydrationContainers).Error
 		if err != nil {
 			r.logger.Error("failed to upsert hydration containers", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *GarminRepo) upsertAvailableTrainingDays(tx *gorm.DB, data *domain.UserSetting) error {
+	if len(data.UserData.AvailableTrainingDays) > 0 {
+		model := domain.AvailableTrainingDays{
+			UserProfilePK: data.ID,
+			Days:          data.UserData.AvailableTrainingDays,
+		}
+
+		err := tx.Omit("ID").Clauses(
+			clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+			clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "user_profile_pk"},
+				},
+				UpdateAll: true,
+			}).Table((&domain.AvailableTrainingDays{}).TableName()).Create(&model).Error
+		if err != nil {
+			r.logger.Error("failed to upsert user available training days", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *GarminRepo) upsertPreferredLongTrainingDays(tx *gorm.DB, data *domain.UserSetting) error {
+	if len(data.UserData.PreferredLongTrainingDays) > 0 {
+		model := domain.PreferredLongTrainingDays{
+			UserProfilePK: data.ID,
+			Days:          data.UserData.PreferredLongTrainingDays,
+		}
+
+		err := tx.Omit("ID").Clauses(
+			clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+			clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "user_profile_pk"},
+				},
+				UpdateAll: true,
+			}).Table((&domain.PreferredLongTrainingDays{}).TableName()).Create(&model).Error
+		if err != nil {
+			r.logger.Error("failed to upsert user available training days", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
 		}
 		return err
 	}

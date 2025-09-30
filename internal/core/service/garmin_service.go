@@ -433,16 +433,16 @@ func (s *GarminService) GetUserProfile(ctx context.Context, r *request.GarminBas
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
-		return nil, fmt.Errorf("API returned status : %d", resp.StatusCode)
-	}
-
 	// Baca response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		s.logger.Error("error_read_response", zap.Error(err))
 		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode), zap.String("url", url), zap.Any("response_body", string(body)))
+		return nil, fmt.Errorf("API returned status : %d", resp.StatusCode)
 	}
 
 	err = json.Unmarshal(body, &userSettings)
