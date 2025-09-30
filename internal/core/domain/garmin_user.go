@@ -52,9 +52,15 @@ type VO2Max struct {
 }
 
 type HydrationContainer struct {
-	Name   *string `json:"name" gorm:"column:name;size:100"`
-	Volume int     `json:"volume" gorm:"column:volume"`
-	Unit   string  `json:"unit" gorm:"column:unit;size:20"`
+	ID            string `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK int64  `json:"userProfilePK" gorm:"column:user_profile_pk;index"`
+	Name          string `json:"name" gorm:"column:name;size:100"`
+	Volume        int    `json:"volume" gorm:"column:volume"`
+	Unit          string `json:"unit" gorm:"column:unit;size:20"`
+}
+
+func (HydrationContainer) TableName() string {
+	return "hydration_containers"
 }
 
 type WeatherLocation struct {

@@ -269,7 +269,6 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 }
 
 func (r *GarminRepo) UpsertUserSettings(data *domain.UserSetting) (err error) {
-
 	if data == nil {
 		return fmt.Errorf("no user settings data to upsert")
 	}
@@ -286,99 +285,149 @@ func (r *GarminRepo) UpsertUserSettings(data *domain.UserSetting) (err error) {
 		return err
 	}
 
-	err = tx.Clauses(
-		clause.Returning{Columns: []clause.Column{
-			{Name: "id"},
-		}},
+	if err := r.upsertUserSetting(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertUserData(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertUserSleep(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertUserSleepWindows(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertPowerFormat(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertHeartRateFormat(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := r.upsertHydrationContainers(tx, data); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
+}
+
+func (r *GarminRepo) upsertUserSetting(tx *gorm.DB, data *domain.UserSetting) error {
+	err := tx.Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: true,
 		}).Create(data).Error
 	if err != nil {
-		tx.Rollback()
 		r.logger.Error("failed to upsert user settings", zap.Error(err), zap.Int64("id", data.ID))
-		return err
 	}
-
 	data.UserData.UserProfilePK = data.ID
 	data.UserSleep.UserProfilePK = data.ID
-
 	for i := range data.UserSleepWindows {
 		data.UserSleepWindows[i].UserProfilePK = data.ID
 	}
-
 	data.UserData.PowerFormat.UserProfilePK = data.ID
 	data.UserData.HeartRateFormat.UserProfilePK = data.ID
+	return err
+}
 
-	err = tx.Omit("ID").Clauses(
-		clause.Returning{Columns: []clause.Column{
-			{Name: "id"},
-		}},
+func (r *GarminRepo) upsertUserData(tx *gorm.DB, data *domain.UserSetting) error {
+	err := tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_profile_pk"}},
 			UpdateAll: true,
 		}).Create(&data.UserData).Error
 	if err != nil {
-		tx.Rollback()
 		r.logger.Error("failed to upsert user data", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
-		return err
 	}
+	return err
+}
 
-	err = tx.Omit("ID").Clauses(
-		clause.Returning{Columns: []clause.Column{
-			{Name: "id"},
-		}},
+func (r *GarminRepo) upsertUserSleep(tx *gorm.DB, data *domain.UserSetting) error {
+	err := tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_profile_pk"}},
 			UpdateAll: true,
 		}).Create(&data.UserSleep).Error
 	if err != nil {
-		tx.Rollback()
 		r.logger.Error("failed to upsert user sleep", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
-		return err
 	}
+	return err
+}
 
-	err = tx.Omit("ID").Clauses(
-		clause.Returning{Columns: []clause.Column{
-			{Name: "id"},
-		}},
+func (r *GarminRepo) upsertUserSleepWindows(tx *gorm.DB, data *domain.UserSetting) error {
+	err := tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_profile_pk"}, {Name: "sleep_window_frequency"}},
 			UpdateAll: true,
 		}).Create(&data.UserSleepWindows).Error
 	if err != nil {
-		tx.Rollback()
 		r.logger.Error("failed to upsert user sleep windows", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
-		return err
 	}
+	return err
+}
 
-	err = tx.Omit("ID").Clauses(
-		clause.Returning{Columns: []clause.Column{
-			{Name: "id"},
-		}},
+func (r *GarminRepo) upsertPowerFormat(tx *gorm.DB, data *domain.UserSetting) error {
+	err := tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_profile_pk"}},
 			UpdateAll: true,
 		}).Create(&data.UserData.PowerFormat).Error
 	if err != nil {
-		tx.Rollback()
 		r.logger.Error("failed to upsert user power format", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
-		return err
 	}
+	return err
+}
 
-	err = tx.Omit("ID").Clauses(
-		clause.Returning{Columns: []clause.Column{
-			{Name: "id"},
-		}},
+func (r *GarminRepo) upsertHeartRateFormat(tx *gorm.DB, data *domain.UserSetting) error {
+	err := tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_profile_pk"}},
 			UpdateAll: true,
 		}).Create(&data.UserData.HeartRateFormat).Error
 	if err != nil {
-		tx.Rollback()
 		r.logger.Error("failed to upsert user heart rate format", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+	}
+	return err
+}
+
+func (r *GarminRepo) upsertHydrationContainers(tx *gorm.DB, data *domain.UserSetting) error {
+	if len(data.UserData.HydrationContainers) > 0 {
+		for i := range data.UserData.HydrationContainers {
+			data.UserData.HydrationContainers[i].UserProfilePK = data.ID
+		}
+		err := tx.Omit("ID").Clauses(
+			clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+			clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "user_profile_pk"},
+					{Name: "volume"},
+					{Name: "name"},
+					{Name: "unit"},
+				},
+				UpdateAll: true,
+			}).Create(&data.UserData.HydrationContainers).Error
+		if err != nil {
+			r.logger.Error("failed to upsert hydration containers", zap.Error(err), zap.Int64("user_profile_pk", data.ID))
+		}
 		return err
 	}
-
-	return tx.Commit().Error
+	return nil
 }

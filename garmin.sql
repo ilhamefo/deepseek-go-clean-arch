@@ -1,226 +1,781 @@
--- Tabel utama untuk aktivitas
-CREATE TABLE activities (
-    activity_id BIGINT PRIMARY KEY,
-    activity_name VARCHAR(255),
-    start_time_local TIMESTAMP,
-    start_time_gmt TIMESTAMP,
-    end_time_gmt TIMESTAMP,
-    distance DECIMAL(10, 5),
-    duration DECIMAL(10, 5),
-    elapsed_duration DECIMAL(10, 5),
-    moving_duration DECIMAL(10, 5),
-    elevation_gain DECIMAL(8, 2),
-    elevation_loss DECIMAL(8, 2),
-    average_speed DECIMAL(8, 5),
-    max_speed DECIMAL(8, 5),
-    start_latitude DECIMAL(15, 12),
-    start_longitude DECIMAL(15, 12),
-    end_latitude DECIMAL(15, 12),
-    end_longitude DECIMAL(15, 12),
-    has_polyline BOOLEAN,
-    has_images BOOLEAN,
-    owner_id BIGINT,
-    owner_display_name VARCHAR(255),
-    owner_full_name VARCHAR(100),
-    owner_profile_image_url_small VARCHAR(500),
-    owner_profile_image_url_medium VARCHAR(500),
-    owner_profile_image_url_large VARCHAR(500),
-    calories DECIMAL(8, 2),
-    bmr_calories DECIMAL(8, 2),
-    average_hr DECIMAL(5, 2),
-    max_hr DECIMAL(5, 2),
-    average_running_cadence DECIMAL(8, 4),
-    max_running_cadence DECIMAL(8, 2),
-    steps INTEGER,
-    user_pro BOOLEAN,
-    has_video BOOLEAN,
-    time_zone_id INTEGER,
-    begin_timestamp BIGINT,
-    sport_type_id INTEGER,
-    avg_power DECIMAL(8, 2),
-    max_power DECIMAL(8, 2),
-    aerobic_training_effect DECIMAL(8, 6),
-    anaerobic_training_effect DECIMAL(8, 2),
-    norm_power DECIMAL(8, 2),
-    avg_vertical_oscillation DECIMAL(8, 6),
-    avg_ground_contact_time DECIMAL(8, 6),
-    avg_stride_length DECIMAL(8, 6),
-    vo2_max_value DECIMAL(5, 2),
-    avg_vertical_ratio DECIMAL(8, 6),
-    device_id BIGINT,
-    min_temperature DECIMAL(5, 2),
-    max_temperature DECIMAL(5, 2),
-    min_elevation DECIMAL(8, 6),
-    max_elevation DECIMAL(8, 2),
-    max_double_cadence DECIMAL(8, 2),
-    max_vertical_speed FLOAT,
-    manufacturer VARCHAR(50),
-    location_name VARCHAR(100),
-    lap_count INTEGER,
-    water_estimated DECIMAL(8, 2),
-    training_effect_label VARCHAR(50),
-    min_activity_lap_duration DECIMAL(8, 6),
-    aerobic_training_effect_message VARCHAR(100),
-    anaerobic_training_effect_message VARCHAR(100),
-    has_splits BOOLEAN,
-    moderate_intensity_minutes INTEGER,
-    vigorous_intensity_minutes INTEGER,
-    avg_grade_adjusted_speed DECIMAL(8, 6),
-    difference_body_battery INTEGER,
-    has_heat_map BOOLEAN,
-    fastest_split_1000 DECIMAL(8, 6),
-    fastest_split_1609 DECIMAL(8, 6),
-    hr_time_in_zone_1 DECIMAL(8, 3),
-    hr_time_in_zone_2 DECIMAL(8, 3),
-    hr_time_in_zone_3 DECIMAL(8, 3),
-    hr_time_in_zone_4 DECIMAL(8, 3),
-    hr_time_in_zone_5 DECIMAL(8, 3),
-    power_time_in_zone_1 DECIMAL(8, 3),
-    power_time_in_zone_2 DECIMAL(8, 3),
-    power_time_in_zone_3 DECIMAL(8, 3),
-    power_time_in_zone_4 DECIMAL(8, 3),
-    power_time_in_zone_5 DECIMAL(8, 3),
-    qualifying_dive BOOLEAN,
-    parent BOOLEAN,
-    pr BOOLEAN,
-    favorite BOOLEAN,
-    purposeful BOOLEAN,
-    deco_dive BOOLEAN,
-    manual_activity BOOLEAN,
-    auto_calc_calories BOOLEAN,
-    elevation_corrected BOOLEAN,
-    atp_activity BOOLEAN
+-- ----------------------------
+-- Sequence structure for activity_detail_metrics_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "public"."activity_detail_metrics_id_seq";
+CREATE SEQUENCE "public"."activity_detail_metrics_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 2147483647
+START 1
+CACHE 1;
+
+-- ----------------------------
+-- Table structure for activities
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."activities";
+CREATE TABLE "public"."activities" (
+  "activity_id" int8 NOT NULL,
+  "activity_name" varchar(255) COLLATE "pg_catalog"."default",
+  "start_time_local" timestamp(6),
+  "start_time_gmt" timestamp(6),
+  "end_time_gmt" timestamp(6),
+  "distance" float8,
+  "duration" float8,
+  "elapsed_duration" float8,
+  "moving_duration" float8,
+  "elevation_gain" float8,
+  "elevation_loss" float8,
+  "average_speed" float8,
+  "max_speed" float8,
+  "start_latitude" float8,
+  "start_longitude" float8,
+  "end_latitude" float8,
+  "end_longitude" float8,
+  "has_polyline" bool,
+  "has_images" bool,
+  "owner_id" int8,
+  "owner_display_name" varchar(255) COLLATE "pg_catalog"."default",
+  "owner_full_name" varchar(100) COLLATE "pg_catalog"."default",
+  "owner_profile_image_url_small" varchar(500) COLLATE "pg_catalog"."default",
+  "owner_profile_image_url_medium" varchar(500) COLLATE "pg_catalog"."default",
+  "owner_profile_image_url_large" varchar(500) COLLATE "pg_catalog"."default",
+  "calories" float8,
+  "bmr_calories" float8,
+  "average_hr" float8,
+  "max_hr" float8,
+  "average_running_cadence" float8,
+  "max_running_cadence" float8,
+  "steps" int4,
+  "user_pro" bool,
+  "has_video" bool,
+  "time_zone_id" int4,
+  "begin_timestamp" int8,
+  "sport_type_id" int4,
+  "avg_power" float8,
+  "max_power" float8,
+  "aerobic_training_effect" float8,
+  "anaerobic_training_effect" float8,
+  "norm_power" float8,
+  "avg_vertical_oscillation" float8,
+  "avg_ground_contact_time" float8,
+  "avg_stride_length" float8,
+  "vo2_max_value" float8,
+  "avg_vertical_ratio" float8,
+  "device_id" int8,
+  "min_temperature" float8,
+  "max_temperature" float8,
+  "min_elevation" float8,
+  "max_elevation" float8,
+  "max_double_cadence" float8,
+  "max_vertical_speed" float8,
+  "manufacturer" varchar(50) COLLATE "pg_catalog"."default",
+  "location_name" varchar(100) COLLATE "pg_catalog"."default",
+  "lap_count" int4,
+  "water_estimated" float8,
+  "training_effect_label" varchar(50) COLLATE "pg_catalog"."default",
+  "min_activity_lap_duration" float8,
+  "aerobic_training_effect_message" varchar(100) COLLATE "pg_catalog"."default",
+  "anaerobic_training_effect_message" varchar(100) COLLATE "pg_catalog"."default",
+  "has_splits" bool,
+  "moderate_intensity_minutes" int4,
+  "vigorous_intensity_minutes" int4,
+  "avg_grade_adjusted_speed" float8,
+  "difference_body_battery" int4,
+  "has_heat_map" bool,
+  "fastest_split_1000" float8,
+  "fastest_split_1609" float8,
+  "hr_time_in_zone_1" float8,
+  "hr_time_in_zone_2" float8,
+  "hr_time_in_zone_3" float8,
+  "hr_time_in_zone_4" float8,
+  "hr_time_in_zone_5" float8,
+  "power_time_in_zone_1" float8,
+  "power_time_in_zone_2" float8,
+  "power_time_in_zone_3" float8,
+  "power_time_in_zone_4" float8,
+  "power_time_in_zone_5" float8,
+  "qualifying_dive" bool,
+  "parent" bool,
+  "pr" bool,
+  "favorite" bool,
+  "purposeful" bool,
+  "deco_dive" bool,
+  "manual_activity" bool,
+  "auto_calc_calories" bool,
+  "elevation_corrected" bool,
+  "atp_activity" bool,
+  "activity_type_id" int4,
+  "event_type_id" int4,
+  "privacy_type_id" int4
+)
+;
+
+-- ----------------------------
+-- Table structure for activity_detail_metrics
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."activity_detail_metrics";
+CREATE TABLE "public"."activity_detail_metrics" (
+  "id" int4 NOT NULL DEFAULT nextval('activity_detail_metrics_id_seq'::regclass),
+  "activity_id" int8 NOT NULL,
+  "measurement_index" int4 NOT NULL,
+  "metrics" jsonb,
+  "created_at" timestamptz(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for activity_splits
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."activity_splits";
+CREATE TABLE "public"."activity_splits" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "activity_id" int8 NOT NULL,
+  "start_time_gmt" varchar(50) COLLATE "pg_catalog"."default",
+  "start_latitude" float8,
+  "start_longitude" float8,
+  "end_latitude" float8,
+  "end_longitude" float8,
+  "distance" float8,
+  "duration" float8,
+  "moving_duration" float8,
+  "elapsed_duration" float8,
+  "elevation_gain" float8,
+  "elevation_loss" float8,
+  "max_elevation" float8,
+  "min_elevation" float8,
+  "average_speed" float8,
+  "average_moving_speed" float8,
+  "max_speed" float8,
+  "calories" float8,
+  "bmr_calories" float8,
+  "average_hr" float8,
+  "max_hr" float8,
+  "average_run_cadence" float8,
+  "max_run_cadence" float8,
+  "average_temperature" float8,
+  "max_temperature" float8,
+  "min_temperature" float8,
+  "average_power" float8,
+  "max_power" float8,
+  "min_power" float8,
+  "normalized_power" float8,
+  "total_work" float8,
+  "ground_contact_time" float8,
+  "stride_length" float8,
+  "vertical_oscillation" float8,
+  "vertical_ratio" float8,
+  "max_vertical_speed" float8,
+  "avg_grade_adjusted_speed" float8,
+  "lap_index" int4,
+  "intensity_type" varchar(20) COLLATE "pg_catalog"."default",
+  "message_index" int4
+)
+;
+
+-- ----------------------------
+-- Table structure for activity_types
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."activity_types";
+CREATE TABLE "public"."activity_types" (
+  "type_id" int4 NOT NULL,
+  "type_key" varchar(50) COLLATE "pg_catalog"."default",
+  "parent_type_id" int4,
+  "is_hidden" bool,
+  "restricted" bool,
+  "trimmable" bool
+)
+;
+
+-- ----------------------------
+-- Table structure for available_training_days
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."available_training_days";
+CREATE TABLE "public"."available_training_days" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "training_day" varchar(20) COLLATE "pg_catalog"."default",
+  "is_preferred_long_day" bool DEFAULT false,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for event_types
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."event_types";
+CREATE TABLE "public"."event_types" (
+  "type_id" int4 NOT NULL,
+  "type_key" varchar(50) COLLATE "pg_catalog"."default",
+  "sort_order" int4
+)
+;
+
+-- ----------------------------
+-- Table structure for heart_rate_details
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."heart_rate_details";
+CREATE TABLE "public"."heart_rate_details" (
+  "heartrate" int2,
+  "timestamp" int8,
+  "user_profile_pk" int8 NOT NULL,
+  "calendar_date" date NOT NULL
+)
+;
+
+-- ----------------------------
+-- Table structure for heart_rates
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."heart_rates";
+CREATE TABLE "public"."heart_rates" (
+  "user_profile_pk" int8 NOT NULL,
+  "calendar_date" date,
+  "start_timestamp_gmt" timestamp(6),
+  "end_timestamp_gmt" timestamp(6),
+  "start_timestamp_local" timestamp(6),
+  "end_timestamp_local" timestamp(6),
+  "max_heart_rate" int4,
+  "min_heart_rate" int4,
+  "resting_heart_rate" int4,
+  "last_seven_days_avg_resting_heart_rate" int4,
+  "created_at" timestamp(6),
+  "updated_at" timestamp(6),
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4()
+)
+;
+
+-- ----------------------------
+-- Table structure for hydration_containers
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."hydration_containers";
+CREATE TABLE "public"."hydration_containers" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "name" varchar(100) COLLATE "pg_catalog"."default",
+  "volume" int4,
+  "unit" varchar(20) COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for privacy_settings
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."privacy_settings";
+CREATE TABLE "public"."privacy_settings" (
+  "type_id" int4 NOT NULL,
+  "type_key" varchar(50) COLLATE "pg_catalog"."default"
+)
+;
+
+-- ----------------------------
+-- Table structure for split_summaries
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."split_summaries";
+CREATE TABLE "public"."split_summaries" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "activity_id" int8,
+  "no_of_splits" int4,
+  "total_ascent" float8,
+  "duration" float8,
+  "split_type" varchar(50) COLLATE "pg_catalog"."default",
+  "num_climb_sends" int4,
+  "max_elevation_gain" float8,
+  "average_elevation_gain" float8,
+  "max_distance" int4,
+  "distance" float8,
+  "average_speed" float8,
+  "max_speed" float8,
+  "num_falls" int4,
+  "elevation_loss" float8
+)
+;
+
+-- ----------------------------
+-- Table structure for step_details
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."step_details";
+CREATE TABLE "public"."step_details" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "start_gmt" timestamp(6),
+  "end_gmt" timestamp(6),
+  "steps" int4,
+  "pushes" int4,
+  "primary_activity_level" varchar(50) COLLATE "pg_catalog"."default",
+  "activity_level_constant" bool,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_data
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_data";
+CREATE TABLE "public"."user_data" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "gender" varchar(10) COLLATE "pg_catalog"."default",
+  "time_format" varchar(50) COLLATE "pg_catalog"."default",
+  "birth_date" date,
+  "measurement_system" varchar(20) COLLATE "pg_catalog"."default",
+  "activity_level" varchar(50) COLLATE "pg_catalog"."default",
+  "handedness" varchar(10) COLLATE "pg_catalog"."default",
+  "intensity_minutes_calc_method" varchar(20) COLLATE "pg_catalog"."default",
+  "moderate_intensity_minutes_hr_zone" int4,
+  "vigorous_intensity_minutes_hr_zone" int4,
+  "hydration_measurement_unit" varchar(20) COLLATE "pg_catalog"."default",
+  "hydration_auto_goal_enabled" bool,
+  "firstbeat_max_stress_score" numeric(8,2),
+  "firstbeat_cycling_lt_timestamp" timestamp(6),
+  "firstbeat_running_lt_timestamp" timestamp(6),
+  "threshold_heart_rate_auto_detected" bool,
+  "ftp_auto_detected" bool,
+  "training_status_paused_date" date,
+  "golf_distance_unit" varchar(20) COLLATE "pg_catalog"."default",
+  "golf_elevation_unit" varchar(20) COLLATE "pg_catalog"."default",
+  "golf_speed_unit" varchar(20) COLLATE "pg_catalog"."default",
+  "external_bottom_time" timestamp(6),
+  "virtual_caddie_data_source" varchar(50) COLLATE "pg_catalog"."default",
+  "number_dives_automatically" bool,
+  "dive_number" int4,
+  "lactate_threshold_speed" numeric(8,4),
+  "lactate_threshold_heart_rate" numeric(5,2),
+  "weight" float4,
+  "height" float4,
+  "vo2_max_running" numeric(5,2),
+  "vo2_max_cycling" numeric(5,2),
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_heart_rate_formats
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_heart_rate_formats";
+CREATE TABLE "public"."user_heart_rate_formats" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "format_id" int4,
+  "format_key" varchar(50) COLLATE "pg_catalog"."default",
+  "min_fraction" int4,
+  "max_fraction" int4,
+  "grouping_used" bool,
+  "display_format" text COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_power_formats
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_power_formats";
+CREATE TABLE "public"."user_power_formats" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "format_id" int4,
+  "format_key" varchar(50) COLLATE "pg_catalog"."default",
+  "min_fraction" int4,
+  "max_fraction" int4,
+  "grouping_used" bool,
+  "display_format" text COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_roles
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_roles";
+CREATE TABLE "public"."user_roles" (
+  "activity_id" int8,
+  "role_name" varchar(100) COLLATE "pg_catalog"."default",
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4()
+)
+;
+
+-- ----------------------------
+-- Table structure for user_settings
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_settings";
+CREATE TABLE "public"."user_settings" (
+  "id" int8 NOT NULL,
+  "connect_date" timestamp(6),
+  "source_type" varchar(50) COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_sleep
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_sleep";
+CREATE TABLE "public"."user_sleep" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "sleep_time" int4,
+  "default_sleep_time" bool,
+  "wake_time" int4,
+  "default_wake_time" bool,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_sleep_windows
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_sleep_windows";
+CREATE TABLE "public"."user_sleep_windows" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "sleep_window_frequency" varchar(20) COLLATE "pg_catalog"."default",
+  "start_sleep_time_seconds_from_midnight" int4,
+  "end_sleep_time_seconds_from_midnight" int4,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for user_available_training_days
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_available_training_days";
+CREATE TABLE "public"."user_available_training_days" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "days" VARCHAR(50)[],
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Table structure for weather_locations
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."weather_locations";
+CREATE TABLE "public"."weather_locations" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "use_fixed_location" bool,
+  "latitude" numeric(15,12),
+  "longitude" numeric(15,12),
+  "location_name" varchar(100) COLLATE "pg_catalog"."default",
+  "iso_country_code" varchar(10) COLLATE "pg_catalog"."default",
+  "postal_code" varchar(20) COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Function structure for uuid_generate_v1
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_generate_v1"();
+CREATE OR REPLACE FUNCTION "public"."uuid_generate_v1"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_generate_v1'
+  LANGUAGE c VOLATILE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_generate_v1mc
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_generate_v1mc"();
+CREATE OR REPLACE FUNCTION "public"."uuid_generate_v1mc"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_generate_v1mc'
+  LANGUAGE c VOLATILE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_generate_v3
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_generate_v3"("namespace" uuid, "name" text);
+CREATE OR REPLACE FUNCTION "public"."uuid_generate_v3"("namespace" uuid, "name" text)
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_generate_v3'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_generate_v4
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_generate_v4"();
+CREATE OR REPLACE FUNCTION "public"."uuid_generate_v4"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_generate_v4'
+  LANGUAGE c VOLATILE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_generate_v5
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_generate_v5"("namespace" uuid, "name" text);
+CREATE OR REPLACE FUNCTION "public"."uuid_generate_v5"("namespace" uuid, "name" text)
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_generate_v5'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_nil
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_nil"();
+CREATE OR REPLACE FUNCTION "public"."uuid_nil"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_nil'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_ns_dns
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_ns_dns"();
+CREATE OR REPLACE FUNCTION "public"."uuid_ns_dns"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_ns_dns'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_ns_oid
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_ns_oid"();
+CREATE OR REPLACE FUNCTION "public"."uuid_ns_oid"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_ns_oid'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_ns_url
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_ns_url"();
+CREATE OR REPLACE FUNCTION "public"."uuid_ns_url"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_ns_url'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Function structure for uuid_ns_x500
+-- ----------------------------
+DROP FUNCTION IF EXISTS "public"."uuid_ns_x500"();
+CREATE OR REPLACE FUNCTION "public"."uuid_ns_x500"()
+  RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_ns_x500'
+  LANGUAGE c IMMUTABLE STRICT
+  COST 1;
+
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "public"."activity_detail_metrics_id_seq"
+OWNED BY "public"."activity_detail_metrics"."id";
+SELECT setval('"public"."activity_detail_metrics_id_seq"', 1, false);
+
+-- ----------------------------
+-- Primary Key structure for table activities
+-- ----------------------------
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_pkey" PRIMARY KEY ("activity_id");
+
+-- ----------------------------
+-- Uniques structure for table activity_detail_metrics
+-- ----------------------------
+ALTER TABLE "public"."activity_detail_metrics" ADD CONSTRAINT "activity_detail_metrics_activity_id_measurement_index_key" UNIQUE ("activity_id", "measurement_index");
+
+-- ----------------------------
+-- Primary Key structure for table activity_detail_metrics
+-- ----------------------------
+ALTER TABLE "public"."activity_detail_metrics" ADD CONSTRAINT "activity_detail_metrics_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table activity_splits
+-- ----------------------------
+ALTER TABLE "public"."activity_splits" ADD CONSTRAINT "activity_splits_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table activity_types
+-- ----------------------------
+ALTER TABLE "public"."activity_types" ADD CONSTRAINT "activity_types_pkey" PRIMARY KEY ("type_id");
+
+-- ----------------------------
+-- Primary Key structure for table available_training_days
+-- ----------------------------
+ALTER TABLE "public"."available_training_days" ADD CONSTRAINT "available_training_days_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table event_types
+-- ----------------------------
+ALTER TABLE "public"."event_types" ADD CONSTRAINT "event_types_pkey" PRIMARY KEY ("type_id");
+
+-- ----------------------------
+-- Primary Key structure for table heart_rates
+-- ----------------------------
+ALTER TABLE "public"."heart_rates" ADD CONSTRAINT "heart_rates_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table hydration_containers
+-- ----------------------------
+ALTER TABLE "public"."hydration_containers" ADD CONSTRAINT "hydration_containers_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table privacy_settings
+-- ----------------------------
+ALTER TABLE "public"."privacy_settings" ADD CONSTRAINT "privacy_settings_pkey" PRIMARY KEY ("type_id");
+
+-- ----------------------------
+-- Primary Key structure for table split_summaries
+-- ----------------------------
+ALTER TABLE "public"."split_summaries" ADD CONSTRAINT "split_summaries_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table step_details
+-- ----------------------------
+ALTER TABLE "public"."step_details" ADD CONSTRAINT "step_details_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Uniques structure for table user_data
+-- ----------------------------
+ALTER TABLE "public"."user_data" ADD CONSTRAINT "user_data_fk_unique" UNIQUE ("user_profile_pk");
+
+-- ----------------------------
+-- Primary Key structure for table user_data
+-- ----------------------------
+ALTER TABLE "public"."user_data" ADD CONSTRAINT "user_data_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Indexes structure for table user_heart_rate_formats
+-- ----------------------------
+CREATE INDEX "idx_heart_rate_formats_user_profile_pk" ON "public"."user_heart_rate_formats" USING btree (
+  "user_profile_pk" "pg_catalog"."int8_ops" ASC NULLS LAST
 );
 
--- Tabel untuk tipe aktivitas
-CREATE TABLE activity_types (
-    type_id INTEGER PRIMARY KEY,
-    type_key VARCHAR(50),
-    parent_type_id INTEGER,
-    is_hidden BOOLEAN,
-    restricted BOOLEAN,
-    trimmable BOOLEAN
+-- ----------------------------
+-- Uniques structure for table user_heart_rate_formats
+-- ----------------------------
+ALTER TABLE "public"."user_heart_rate_formats" ADD CONSTRAINT "unique_user_profile_pk_heart_rate_format" UNIQUE ("user_profile_pk");
+
+-- ----------------------------
+-- Primary Key structure for table user_heart_rate_formats
+-- ----------------------------
+ALTER TABLE "public"."user_heart_rate_formats" ADD CONSTRAINT "user_heart_rate_formats_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Indexes structure for table user_power_formats
+-- ----------------------------
+CREATE INDEX "idx_user_profile_pk" ON "public"."user_power_formats" USING btree (
+  "user_profile_pk" "pg_catalog"."int8_ops" ASC NULLS LAST
 );
 
--- Tabel untuk tipe event
-CREATE TABLE event_types (
-    type_id INTEGER PRIMARY KEY,
-    type_key VARCHAR(50),
-    sort_order INTEGER
-);
+-- ----------------------------
+-- Uniques structure for table user_power_formats
+-- ----------------------------
+ALTER TABLE "public"."user_power_formats" ADD CONSTRAINT "unique_user_profile_pk_power_format" UNIQUE ("user_profile_pk");
 
--- Tabel untuk privacy settings
-CREATE TABLE privacy_settings (
-    type_id INTEGER PRIMARY KEY,
-    type_key VARCHAR(50)
-);
+-- ----------------------------
+-- Primary Key structure for table user_power_formats
+-- ----------------------------
+ALTER TABLE "public"."user_power_formats" ADD CONSTRAINT "user_power_formats_pkey" PRIMARY KEY ("id");
 
--- Tabel untuk user roles
-CREATE TABLE user_roles (
-    id INTEGER PRIMARY KEY,
-    activity_id BIGINT,
-    role_name VARCHAR(100),
-    FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
-);
+-- ----------------------------
+-- Primary Key structure for table user_roles
+-- ----------------------------
+ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id");
 
--- Tabel untuk split summaries
-CREATE TABLE split_summaries (
-    id INTEGER PRIMARY KEY,
-    activity_id BIGINT,
-    no_of_splits INTEGER,
-    total_ascent DECIMAL(8, 2),
-    duration DECIMAL(8, 2),
-    split_type VARCHAR(50),
-    num_climb_sends INTEGER,
-    max_elevation_gain DECIMAL(8, 2),
-    average_elevation_gain DECIMAL(8, 2),
-    max_distance INTEGER,
-    distance DECIMAL(10, 6),
-    average_speed DECIMAL(8, 6),
-    max_speed DECIMAL(8, 6),
-    num_falls INTEGER,
-    elevation_loss DECIMAL(8, 2),
-    FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
-);
+-- ----------------------------
+-- Primary Key structure for table user_settings
+-- ----------------------------
+ALTER TABLE "public"."user_settings" ADD CONSTRAINT "user_profiles_pkey" PRIMARY KEY ("id");
 
--- Tabel untuk heart rate responses (data harian heart rate)
-CREATE TABLE heart_rates (
-    user_profile_pk BIGINT PRIMARY KEY,
-    calendar_date DATE,
-    start_timestamp_gmt TIMESTAMP,
-    end_timestamp_gmt TIMESTAMP,
-    start_timestamp_local TIMESTAMP,
-    end_timestamp_local TIMESTAMP,
-    max_heart_rate INTEGER,
-    min_heart_rate INTEGER,
-    resting_heart_rate INTEGER,
-    last_seven_days_avg_resting_heart_rate INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- ----------------------------
+-- Uniques structure for table user_sleep
+-- ----------------------------
+ALTER TABLE "public"."user_sleep" ADD CONSTRAINT "id_user_profile_pk" UNIQUE ("user_profile_pk");
 
--- Tabel untuk section types (jika diperlukan untuk lap data)
-CREATE TABLE section_types (
-    id INTEGER PRIMARY KEY,
-    key VARCHAR(50),
-    section_type_key VARCHAR(50)
-);
+-- ----------------------------
+-- Primary Key structure for table user_sleep
+-- ----------------------------
+ALTER TABLE "public"."user_sleep" ADD CONSTRAINT "user_sleep_pkey" PRIMARY KEY ("id");
 
--- Tabel untuk activity laps (data lap per aktivitas)
-CREATE TABLE activity_laps (
-    id VARCHAR(255) PRIMARY KEY,
-    activity_id BIGINT,
-    start_time_gmt VARCHAR(50),
-    start_latitude DECIMAL(15, 12),
-    start_longitude DECIMAL(15, 12),
-    end_latitude DECIMAL(15, 12),
-    end_longitude DECIMAL(15, 12),
-    distance DECIMAL(10, 5),
-    duration DECIMAL(10, 5),
-    moving_duration DECIMAL(10, 5),
-    elapsed_duration DECIMAL(10, 5),
-    elevation_gain DECIMAL(8, 2),
-    elevation_loss DECIMAL(8, 2),
-    max_elevation DECIMAL(8, 2),
-    min_elevation DECIMAL(8, 2),
-    average_speed DECIMAL(8, 5),
-    average_moving_speed DECIMAL(8, 5),
-    max_speed DECIMAL(8, 5),
-    calories DECIMAL(8, 2),
-    bmr_calories DECIMAL(8, 2),
-    average_hr DECIMAL(5, 2),
-    max_hr DECIMAL(5, 2),
-    average_run_cadence DECIMAL(8, 4),
-    max_run_cadence DECIMAL(8, 2),
-    average_temperature DECIMAL(5, 2),
-    max_temperature DECIMAL(5, 2),
-    min_temperature DECIMAL(5, 2),
-    average_power DECIMAL(8, 2),
-    max_power DECIMAL(8, 2),
-    min_power DECIMAL(8, 2),
-    normalized_power DECIMAL(8, 2),
-    total_work DECIMAL(12, 6),
-    ground_contact_time DECIMAL(8, 6),
-    stride_length DECIMAL(8, 6),
-    vertical_oscillation DECIMAL(8, 6),
-    vertical_ratio DECIMAL(8, 6),
-    max_vertical_speed DECIMAL(8, 12),
-    avg_grade_adjusted_speed DECIMAL(8, 6),
-    lap_index INTEGER,
-    intensity_type VARCHAR(20),
-    message_index INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (activity_id) REFERENCES activities(activity_id),
-    INDEX idx_activity_id (activity_id),
-    INDEX idx_lap_index (lap_index)
-);
+-- ----------------------------
+-- Uniques structure for table user_sleep_windows
+-- ----------------------------
+ALTER TABLE "public"."user_sleep_windows" ADD CONSTRAINT "id_user_profile_pk_sleep_windows_freq" UNIQUE ("user_profile_pk", "sleep_window_frequency");
 
--- Menambahkan foreign key references ke tabel utama
-ALTER TABLE activities 
-ADD COLUMN activity_type_id INTEGER,
-ADD COLUMN event_type_id INTEGER,
-ADD COLUMN privacy_type_id INTEGER,
-ADD FOREIGN KEY (activity_type_id) REFERENCES activity_types(type_id),
-ADD FOREIGN KEY (event_type_id) REFERENCES event_types(type_id),
-ADD FOREIGN KEY (privacy_type_id) REFERENCES privacy_settings(type_id);
+-- ----------------------------
+-- Primary Key structure for table user_sleep_windows
+-- ----------------------------
+ALTER TABLE "public"."user_sleep_windows" ADD CONSTRAINT "user_sleep_windows_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Primary Key structure for table weather_locations
+-- ----------------------------
+ALTER TABLE "public"."weather_locations" ADD CONSTRAINT "weather_locations_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Foreign Keys structure for table activities
+-- ----------------------------
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_activity_type_id_fkey" FOREIGN KEY ("activity_type_id") REFERENCES "public"."activity_types" ("type_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_event_type_id_fkey" FOREIGN KEY ("event_type_id") REFERENCES "public"."event_types" ("type_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+ALTER TABLE "public"."activities" ADD CONSTRAINT "activities_privacy_type_id_fkey" FOREIGN KEY ("privacy_type_id") REFERENCES "public"."privacy_settings" ("type_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table activity_detail_metrics
+-- ----------------------------
+ALTER TABLE "public"."activity_detail_metrics" ADD CONSTRAINT "activity_detail_metrics_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "public"."activities" ("activity_id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table activity_splits
+-- ----------------------------
+ALTER TABLE "public"."activity_splits" ADD CONSTRAINT "activity_splits_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "public"."activities" ("activity_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table available_training_days
+-- ----------------------------
+ALTER TABLE "public"."available_training_days" ADD CONSTRAINT "available_training_days_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table hydration_containers
+-- ----------------------------
+ALTER TABLE "public"."hydration_containers" ADD CONSTRAINT "hydration_containers_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table split_summaries
+-- ----------------------------
+ALTER TABLE "public"."split_summaries" ADD CONSTRAINT "split_summaries_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "public"."activities" ("activity_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table step_details
+-- ----------------------------
+ALTER TABLE "public"."step_details" ADD CONSTRAINT "step_details_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_data
+-- ----------------------------
+ALTER TABLE "public"."user_data" ADD CONSTRAINT "user_data_user_setting_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_heart_rate_formats
+-- ----------------------------
+ALTER TABLE "public"."user_heart_rate_formats" ADD CONSTRAINT "user_heart_rate_formats_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_power_formats
+-- ----------------------------
+ALTER TABLE "public"."user_power_formats" ADD CONSTRAINT "user_power_formats_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_roles
+-- ----------------------------
+ALTER TABLE "public"."user_roles" ADD CONSTRAINT "user_roles_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "public"."activities" ("activity_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_sleep
+-- ----------------------------
+ALTER TABLE "public"."user_sleep" ADD CONSTRAINT "user_sleep_user_settings_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_sleep_windows
+-- ----------------------------
+ALTER TABLE "public"."user_sleep_windows" ADD CONSTRAINT "user_sleep_windows_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table weather_locations
+-- ----------------------------
+ALTER TABLE "public"."weather_locations" ADD CONSTRAINT "weather_locations_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
