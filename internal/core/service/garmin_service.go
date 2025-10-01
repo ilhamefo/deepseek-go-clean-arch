@@ -272,7 +272,7 @@ func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.Garm
 		var pageActivities []*domain.Activity
 		err = json.Unmarshal(body, &pageActivities)
 		if err != nil {
-			s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body[:min(500, len(body))])))
+			s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
 			return nil, false, err
 		}
 
@@ -381,11 +381,9 @@ func (s *GarminService) HeartRateByDate(ctx context.Context, r *request.HeartRat
 	var hrData *domain.HeartRate
 	err = json.Unmarshal(body, &hrData)
 	if err != nil {
-		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body[:min(500, len(body))])))
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
 		return err
 	}
-
-	s.logger.Error("read_response", zap.Any("response_api", hrData))
 
 	return s.upsertHeartRateByDate(hrData)
 }
@@ -407,7 +405,11 @@ func (s *GarminService) upsertHeartRateByDate(models *domain.HeartRate) (err err
 	return err
 }
 
-func (s *GarminService) GetUserProfile(ctx context.Context, r *request.GarminBasicRequest) (userSettings *domain.UserSetting, err error) {
+func (s *GarminService) GetUserSettings(
+	ctx context.Context,
+	r *request.GarminBasicRequest,
+	isUpsert bool,
+) (userSettings *domain.UserSetting, err error) {
 	url := "https://connect.garmin.com/gc-api/userprofile-service/userprofile/user-settings/"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -447,13 +449,13 @@ func (s *GarminService) GetUserProfile(ctx context.Context, r *request.GarminBas
 
 	err = json.Unmarshal(body, &userSettings)
 	if err != nil {
-		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body[:min(500, len(body))])))
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
 		return nil, err
 	}
 
 	s.logger.Info("read_response", zap.Any("response_api_unmarshal", userSettings), zap.Any("response_api", string(body)))
 
-	err = s.UpsertUserSettings(userSettings)
+	err = s.upsertUserSettings(userSettings)
 	if err != nil {
 		s.logger.Error("error_upsert_user_settings", zap.Error(err), zap.Int64("user_profile_pk", userSettings.ID))
 		return nil, err
@@ -462,7 +464,7 @@ func (s *GarminService) GetUserProfile(ctx context.Context, r *request.GarminBas
 	return userSettings, err
 }
 
-func (s *GarminService) UpsertUserSettings(data *domain.UserSetting) (err error) {
+func (s *GarminService) upsertUserSettings(data *domain.UserSetting) (err error) {
 	if data == nil {
 		s.logger.Info("no_user_settings_to_upsert")
 		return nil
@@ -479,7 +481,6 @@ func (s *GarminService) UpsertUserSettings(data *domain.UserSetting) (err error)
 	return nil
 }
 
-// otw
 func (s *GarminService) StepByDate(ctx context.Context, r *request.StepByDateRequest) (err error) {
 	url := fmt.Sprintf("https://connect.garmin.com/gc-api/wellness-service/wellness/dailySummaryChart/?date=%s", r.Date)
 
@@ -518,14 +519,47 @@ func (s *GarminService) StepByDate(ctx context.Context, r *request.StepByDateReq
 		return err
 	}
 
-	var hrData *domain.HeartRate
-	err = json.Unmarshal(body, &hrData)
+	var steps []*domain.Step
+	err = json.Unmarshal(body, &steps)
 	if err != nil {
-		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body[:min(500, len(body))])))
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
 		return err
 	}
 
-	s.logger.Error("read_response", zap.Any("response_api", hrData))
+	userSetting, err := s.GetUserSettings(ctx, &request.GarminBasicRequest{
+		GarminCsrfToken: r.GarminCsrfToken,
+		Cookies:         r.Cookies,
+	}, false)
 
-	return s.upsertHeartRateByDate(hrData)
+	if err != nil {
+		s.logger.Error("error_get_user_settings", zap.Error(err))
+		return err
+	}
+
+	err = s.upsertStepsByDate(ctx, steps, userSetting.ID)
+	if err != nil {
+		s.logger.Error("error_upsert_steps_by_date", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *GarminService) upsertStepsByDate(ctx context.Context, data []*domain.Step, userID int64) (err error) {
+	if len(data) == 0 {
+		s.logger.Info("no_steps_data_to_upsert")
+		return nil
+	}
+
+	for _, d := range data {
+		d.UserProfilePK = userID
+	}
+
+	err = s.repo.UpsertSteps(ctx, data)
+	if err != nil {
+		s.logger.Error("error_upsert_steps", zap.Error(err), zap.Int64("user_profile_pk", userID))
+		return err
+	}
+
+	return nil
 }

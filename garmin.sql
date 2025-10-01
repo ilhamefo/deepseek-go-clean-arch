@@ -492,6 +492,30 @@ CREATE TABLE "public"."weather_locations" (
 ;
 
 -- ----------------------------
+-- Table structure for steps
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."steps";
+CREATE TABLE "public"."steps" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "start_gmt" timestamp(6),
+  "end_gmt" timestamp(6),
+  "steps" int4,
+  "pushes" int4,
+  "primary_activity_level" varchar(50) COLLATE "pg_catalog"."default",
+  "activity_level_constant" bool,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+
+-- ----------------------------
+-- Primary Key structure for table steps
+-- ----------------------------
+ALTER TABLE "public"."steps" ADD CONSTRAINT "steps_pkey" PRIMARY KEY ("id");
+ALTER TABLE "public"."steps" 
+  ADD CONSTRAINT "steps_unique_fields" UNIQUE ("user_profile_pk", "start_gmt", "end_gmt");
+-- ----------------------------
 -- Function structure for uuid_generate_v1
 -- ----------------------------
 DROP FUNCTION IF EXISTS "public"."uuid_generate_v1"();

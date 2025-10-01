@@ -28,7 +28,7 @@ func NewGarminHandler(service *service.GarminService, handler *common.Handler) *
 // @Description This endpoint is used to Refresh Garmin activities.
 // @Tags Garmin
 // @Accept  json
-// @Param request body request.RefreshActivitiesRequest false "..."
+// @Param request body request.GarminBasicRequest false "..."
 // @Produce  json
 // @Router /refresh [post]
 func (h *GarminHandler) Refresh(c *fiber.Ctx) error {
@@ -55,7 +55,7 @@ func (h *GarminHandler) Refresh(c *fiber.Ctx) error {
 // @Description This endpoint is used to Splits Garmin activities.
 // @Tags Garmin
 // @Accept  json
-// @Param request body request.RefreshActivitiesRequest false "..."
+// @Param request body request.GarminBasicRequest false "..."
 // @Param activityID path int true "Activity ID"
 // @Produce  json
 // @Router /splits/{activityID} [post]
@@ -83,7 +83,7 @@ func (h *GarminHandler) Splits(c *fiber.Ctx) error {
 	return h.handler.ResponseSuccess(c, res)
 }
 
-// Refresh godoc
+// Heart Rate By Date godoc
 // @Summary Heart Rate By Date
 // @Description This endpoint is used to get Garmin heart rate by date.
 // @Tags Garmin
@@ -115,7 +115,7 @@ func (h *GarminHandler) GetHeartRateByDate(c *fiber.Ctx) error {
 // @Description This endpoint is used to get Garmin user profile.
 // @Tags Garmin
 // @Accept  json
-// @Param request body request.RefreshActivitiesRequest false "..."
+// @Param request body request.GarminBasicRequest false "..."
 // @Produce  json
 // @Router /user-profile [post]
 func (h *GarminHandler) GetUserProfile(c *fiber.Ctx) error {
@@ -129,7 +129,7 @@ func (h *GarminHandler) GetUserProfile(c *fiber.Ctx) error {
 		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
 	}
 
-	response, err := h.service.GetUserProfile(c.Context(), request)
+	response, err := h.service.GetUserSettings(c.Context(), request, true)
 	if err != nil {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
@@ -137,14 +137,14 @@ func (h *GarminHandler) GetUserProfile(c *fiber.Ctx) error {
 	return h.handler.ResponseSuccess(c, response)
 }
 
-// Refresh godoc
-// @Summary Refresh
-// @Description This endpoint is used to get Garmin heart rate by date.
+// GetStepByDate godoc
+// @Summary GetStepByDate
+// @Description This endpoint is used to get Garmin step by date.
 // @Tags Garmin
 // @Accept  json
 // @Param request body request.StepByDateRequest false "..."
 // @Produce  json
-// @Router /heart-rate-by-date [post]
+// @Router /step-by-date [post]
 func (h *GarminHandler) GetStepByDate(c *fiber.Ctx) error {
 	request := new(request.StepByDateRequest)
 

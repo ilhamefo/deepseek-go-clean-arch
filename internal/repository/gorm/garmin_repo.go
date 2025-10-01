@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"event-registration/internal/core/domain"
 	"fmt"
 
@@ -213,15 +214,17 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 		return err
 	}
 
-	// Delete existing heart rate for this activity and date
-	if err := tx.Where("user_profile_pk = ? AND calendar_date = ?", data.UserProfilePK, data.CalendarDate).Delete(&domain.HeartRate{}).Error; err != nil {
-		tx.Rollback()
-		r.logger.Error("failed to delete existing heart rate", zap.Error(err), zap.Int64("user_profile_pk", data.UserProfilePK), zap.String("calendar_date", data.CalendarDate))
-		return err
-	}
-
-	// Insert new heart rate
-	if err := tx.Omit("ID").Clauses(clause.Returning{}).Create(data).Error; err != nil {
+	if err := tx.Omit("ID").
+		Clauses(
+			clause.Returning{},
+			clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "user_profile_pk"},
+					{Name: "calendar_date"},
+				},
+				UpdateAll: true,
+			}).
+		Create(data).Error; err != nil {
 		tx.Rollback()
 		r.logger.Error("failed to create heart rate", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
 		return err
@@ -243,15 +246,16 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 			details = append(details, detail)
 		}
 
-		r.logger.Info("heart rate details to insert", zap.Int("count", len(details)), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate), zap.Any("details", details))
-
-		if err := tx.Where("user_profile_pk = ? AND calendar_date = ?", data.UserProfilePK, data.CalendarDate).Delete(&domain.HeartRateDetail{}).Error; err != nil {
-			tx.Rollback()
-			r.logger.Error("failed to delete existing heart rate details", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
-			return err
-		}
-
-		if err := tx.Create(details).Error; err != nil {
+		if err := tx.Clauses(
+			clause.Returning{},
+			clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "user_profile_pk"},
+					{Name: "timestamp"},
+				},
+				UpdateAll: true,
+			},
+		).Create(details).Error; err != nil {
 			tx.Rollback()
 			r.logger.Error("failed to create heart rate details", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
 			return err
@@ -485,5 +489,57 @@ func (r *GarminRepo) upsertPreferredLongTrainingDays(tx *gorm.DB, data *domain.U
 		}
 		return err
 	}
+	return nil
+}
+
+func (r *GarminRepo) UpsertSteps(ctx context.Context, data []*domain.Step) (err error) {
+	if len(data) == 0 {
+		r.logger.Info("no steps data to upsert")
+		return nil
+	}
+
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "start_gmt"},
+				{Name: "end_gmt"},
+			},
+			UpdateAll: true,
+		}).Create(&data).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert steps", zap.Error(err))
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	r.logger.Info("steps upserted successfully", zap.Int("count", len(data)))
+
 	return nil
 }
