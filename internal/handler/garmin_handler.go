@@ -190,3 +190,30 @@ func (h *GarminHandler) HRVByDate(c *fiber.Ctx) error {
 
 	return h.handler.ResponseSuccess(c, nil)
 }
+
+// GetActivityTypes godoc
+// @Summary GetActivityTypes
+// @Description This endpoint is used to get Garmin activity types.
+// @Tags Garmin
+// @Accept  json
+// @Param request body request.GarminBasicRequest false "..."
+// @Produce  json
+// @Router /activity-types [post]
+func (h *GarminHandler) GetActivityTypes(c *fiber.Ctx) error {
+	request := new(request.GarminBasicRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	err := h.service.GetActivityTypes(c.Context(), request)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, nil)
+}

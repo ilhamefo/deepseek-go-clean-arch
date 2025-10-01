@@ -37,7 +37,7 @@ func (r *GarminRepo) UpsertSplits(activityID int64, splits *domain.ActivitySplit
 
 	if err := tx.Error; err != nil {
 		r.logger.Error("failed to begin transaction", zap.Error(err))
-		return err
+		return nil
 	}
 
 	// Delete existing laps for this activity
@@ -214,7 +214,7 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 		return err
 	}
 
-	if err := tx.Omit("ID").
+	if err = tx.Omit("ID").
 		Clauses(
 			clause.Returning{},
 			clause.OnConflict{
@@ -226,7 +226,7 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 			}).
 		Create(data).Error; err != nil {
 		tx.Rollback()
-		r.logger.Error("failed to create heart rate", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
+		r.logger.Error("failed to create heart rate", zap.Error(err), zap.Int64("user_profile_pk", data.UserProfilePK), zap.String("date", data.CalendarDate))
 		return err
 	}
 
@@ -235,10 +235,14 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 
 		var details []domain.HeartRateDetail
 
-		for detail := range data.HeartRateValues {
+		for idx := range data.HeartRateValues {
+			if len(data.HeartRateValues[idx]) < 2 {
+				r.logger.Warn("heart rate value slice too short", zap.Int("index", idx))
+				continue
+			}
 			detail := domain.HeartRateDetail{
-				HeartRate:     data.HeartRateValues[detail][1],
-				Timestamp:     data.HeartRateValues[detail][0],
+				HeartRate:     data.HeartRateValues[idx][1],
+				Timestamp:     data.HeartRateValues[idx][0],
 				UserProfilePK: data.UserProfilePK,
 				CalendarDate:  data.CalendarDate,
 			}
@@ -246,7 +250,7 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 			details = append(details, detail)
 		}
 
-		if err := tx.Clauses(
+		if err = tx.Clauses(
 			clause.Returning{},
 			clause.OnConflict{
 				Columns: []clause.Column{
@@ -255,7 +259,7 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 				},
 				UpdateAll: true,
 			},
-		).Create(details).Error; err != nil {
+		).Create(&details).Error; err != nil {
 			tx.Rollback()
 			r.logger.Error("failed to create heart rate details", zap.Error(err), zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
 			return err
@@ -269,7 +273,7 @@ func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
 
 	r.logger.Info("heart rate upserted successfully", zap.Int64("activity_id", data.UserProfilePK), zap.String("date", data.CalendarDate))
 
-	return nil
+	return err
 }
 
 func (r *GarminRepo) UpsertUserSettings(data *domain.UserSetting) (err error) {
@@ -563,6 +567,14 @@ func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) 
 		return err
 	}
 
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
+	}
+
 	err = tx.Omit("ID").Clauses(
 		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
@@ -577,6 +589,14 @@ func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) 
 		tx.Rollback()
 		r.logger.Error("failed to upsert hrv", zap.Error(err))
 		return err
+	}
+
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
 	}
 
 	if len(data.HRVReadings) > 0 {
@@ -601,6 +621,14 @@ func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) 
 		return err
 	}
 
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
+	}
+
 	data.HRVSummary.UserProfilePK = data.UserProfilePK
 
 	err = tx.Omit("ID").Clauses(
@@ -615,6 +643,14 @@ func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) 
 		tx.Rollback()
 		r.logger.Error("failed to upsert hrv summary", zap.Error(err))
 		return err
+	}
+
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
 	}
 
 	data.HRVSummary.Baseline.UserProfilePK = data.UserProfilePK
@@ -640,4 +676,52 @@ func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) 
 	}
 
 	return nil
+}
+
+func (r *GarminRepo) UpsertActivityTypes(ctx context.Context, data []*domain.ActivityType) (err error) {
+	if data == nil {
+		r.logger.Info("no hrv data to upsert")
+		return nil
+	}
+
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "type_id"},
+				{Name: "type_key"},
+			},
+			UpdateAll: true,
+		}).Create(&data).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert hrv", zap.Error(err))
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return err
 }

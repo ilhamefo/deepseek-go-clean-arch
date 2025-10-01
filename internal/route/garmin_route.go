@@ -16,6 +16,7 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 	}))
 
 	app.Post("/refresh", h.Refresh)
+	app.Post("/activity-types", h.GetActivityTypes)
 	app.Post("/user-profile", h.GetUserProfile)
 	app.Post("/heart-rate-by-date", h.GetHeartRateByDate)
 	app.Post("/step-by-date", h.GetStepByDate)

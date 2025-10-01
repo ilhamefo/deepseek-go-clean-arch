@@ -100,6 +100,49 @@ func (s *GarminService) FetchSplits(ctx context.Context, r *request.GarminBasicR
 }
 
 func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicRequest) (err error) {
+
+	err = s.refreshActivities(ctx, r)
+	if err != nil {
+		s.logger.Error("error_upsert_all", zap.Error(err))
+		return err
+	}
+
+	// fetch Heart Rate Data 1 month back
+	now := time.Now()
+	for i := 0; i < 60; i++ {
+		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+
+		hrRequest := &request.GarminByDateRequest{
+			GarminBasicRequest: *r,
+			Date:               date,
+		}
+		err = s.HeartRateByDate(ctx, hrRequest)
+		if err != nil {
+			s.logger.Error("error_fetch_heart_rate_data", zap.Error(err), zap.String("date", date))
+			continue
+		}
+		s.logger.Info("heart_rate_data_fetched", zap.String("date", date))
+	}
+
+	for i := 0; i < 60; i++ {
+		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+
+		hrRequest := &request.GarminByDateRequest{
+			GarminBasicRequest: *r,
+			Date:               date,
+		}
+		err = s.StepByDate(ctx, hrRequest)
+		if err != nil {
+			s.logger.Error("error_fetch_step_data", zap.Error(err), zap.String("date", date))
+			continue
+		}
+		s.logger.Info("step_data_fetched", zap.String("date", date))
+	}
+
+	return nil
+}
+
+func (s *GarminService) refreshActivities(ctx context.Context, r *request.GarminBasicRequest) (err error) {
 	const pageSize = 20 // Increase page size for better performance
 	var allActivities []*domain.Activity
 	start := 0
@@ -603,7 +646,64 @@ func (s *GarminService) HRVByDate(ctx context.Context, r *request.GarminByDateRe
 
 	err = s.repo.UpsertHRVByDate(ctx, hrv)
 	if err != nil {
-		s.logger.Error("error_upsert_hrv_by_date", zap.Error(err))
+		s.logger.Error("error_upsert_activity_types", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+// GetActivityTypes fetches activity types from Garmin API and upserts them into the repository.
+// It returns an error if the request fails, the response cannot be unmarshaled, or the upsert operation fails.
+func (s *GarminService) GetActivityTypes(ctx context.Context, r *request.GarminBasicRequest) (err error) {
+	url := "https://connect.garmin.com/gc-api/activity-service/activity/activityTypes"
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return err
+	}
+
+	// Header
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return err
+	}
+
+	// activityTypes is a slice of ActivityType representing all activity types returned by the Garmin API.
+	var activityTypes []*domain.ActivityType
+	err = json.Unmarshal(body, &activityTypes)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
+		return err
+	}
+
+	err = s.repo.UpsertActivityTypes(ctx, activityTypes)
+	if err != nil {
+		s.logger.Error("error_upsert_activity_types", zap.Error(err))
 		return err
 	}
 
