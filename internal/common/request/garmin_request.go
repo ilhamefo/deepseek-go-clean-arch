@@ -9,12 +9,7 @@ type ActivityRequest struct {
 	ActivityID string `json:"activity_id" query:"activity_id" form:"activity_id" validate:"required"`
 }
 
-type HeartRateByDateRequest struct {
-	GarminBasicRequest
-	Date string `json:"date" form:"date" validate:"required,datetime=2006-01-02,max=100" example:"2025-05-27"`
-}
-
-type StepByDateRequest struct {
+type GarminByDateRequest struct {
 	GarminBasicRequest
 	Date string `json:"date" form:"date" validate:"required,datetime=2006-01-02,max=100" example:"2025-05-27"`
 }

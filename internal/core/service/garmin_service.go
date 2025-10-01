@@ -15,14 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// min returns the smaller of x or y
-func min(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
-}
-
 type GarminService struct {
 	repo       domain.GarminRepository
 	logger     *zap.Logger
@@ -340,7 +332,7 @@ func (s *GarminService) Upsert(models []*domain.Activity) (err error) {
 	return nil
 }
 
-func (s *GarminService) HeartRateByDate(ctx context.Context, r *request.HeartRateByDateRequest) (err error) {
+func (s *GarminService) HeartRateByDate(ctx context.Context, r *request.GarminByDateRequest) (err error) {
 	url := fmt.Sprintf("https://connect.garmin.com/gc-api/wellness-service/wellness/dailyHeartRate?date=%s", r.Date)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -481,7 +473,7 @@ func (s *GarminService) upsertUserSettings(data *domain.UserSetting) (err error)
 	return nil
 }
 
-func (s *GarminService) StepByDate(ctx context.Context, r *request.StepByDateRequest) (err error) {
+func (s *GarminService) StepByDate(ctx context.Context, r *request.GarminByDateRequest) (err error) {
 	url := fmt.Sprintf("https://connect.garmin.com/gc-api/wellness-service/wellness/dailySummaryChart/?date=%s", r.Date)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -558,6 +550,60 @@ func (s *GarminService) upsertStepsByDate(ctx context.Context, data []*domain.St
 	err = s.repo.UpsertSteps(ctx, data)
 	if err != nil {
 		s.logger.Error("error_upsert_steps", zap.Error(err), zap.Int64("user_profile_pk", userID))
+		return err
+	}
+
+	return nil
+}
+
+func (s *GarminService) HRVByDate(ctx context.Context, r *request.GarminByDateRequest) (err error) {
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/hrv-service/hrv/%s", r.Date)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return err
+	}
+
+	// Header
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return err
+	}
+
+	var hrv *domain.HRVData
+	err = json.Unmarshal(body, &hrv)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
+		return err
+	}
+
+	err = s.repo.UpsertHRVByDate(ctx, hrv)
+	if err != nil {
+		s.logger.Error("error_upsert_hrv_by_date", zap.Error(err))
 		return err
 	}
 

@@ -9,6 +9,7 @@ type GarminRepository interface {
 	UpsertHeartRateByDate(data *HeartRate) error
 	UpsertUserSettings(data *UserSetting) (err error)
 	UpsertSteps(ctx context.Context, data []*Step) (err error)
+	UpsertHRVByDate(ctx context.Context, data *HRVData) (err error)
 }
 
 type ActivityType struct {

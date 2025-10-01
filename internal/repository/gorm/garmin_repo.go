@@ -543,3 +543,101 @@ func (r *GarminRepo) UpsertSteps(ctx context.Context, data []*domain.Step) (err 
 
 	return nil
 }
+
+func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) (err error) {
+
+	if data == nil {
+		r.logger.Info("no hrv data to upsert")
+		return nil
+	}
+
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "start_timestamp_gmt"},
+				{Name: "end_timestamp_gmt"},
+			},
+			UpdateAll: true,
+		}).Create(&data).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert hrv", zap.Error(err))
+		return err
+	}
+
+	if len(data.HRVReadings) > 0 {
+		for i := range data.HRVReadings {
+			data.HRVReadings[i].UserProfilePK = data.UserProfilePK
+			data.HRVReadings[i].ParentID = data.ID
+		}
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "parent_id"},
+				{Name: "user_profile_pk"},
+				{Name: "reading_time_gmt"},
+			},
+			UpdateAll: true,
+		}).Create(&data.HRVReadings).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert hrv", zap.Error(err))
+		return err
+	}
+
+	data.HRVSummary.UserProfilePK = data.UserProfilePK
+
+	err = tx.Omit("ID").Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "calendar_date"},
+			},
+			UpdateAll: true,
+		}).Create(&data.HRVSummary).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert hrv summary", zap.Error(err))
+		return err
+	}
+
+	data.HRVSummary.Baseline.UserProfilePK = data.UserProfilePK
+	data.HRVSummary.Baseline.CalendarDate = data.HRVSummary.CalendarDate
+
+	err = tx.Omit("ID").Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "calendar_date"},
+			},
+			UpdateAll: true,
+		}).Create(&data.HRVSummary.Baseline).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert hrv summary", zap.Error(err))
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
+}

@@ -88,11 +88,11 @@ func (h *GarminHandler) Splits(c *fiber.Ctx) error {
 // @Description This endpoint is used to get Garmin heart rate by date.
 // @Tags Garmin
 // @Accept  json
-// @Param request body request.HeartRateByDateRequest false "..."
+// @Param request body request.GarminByDateRequest false "..."
 // @Produce  json
 // @Router /heart-rate-by-date [post]
 func (h *GarminHandler) GetHeartRateByDate(c *fiber.Ctx) error {
-	request := new(request.HeartRateByDateRequest)
+	request := new(request.GarminByDateRequest)
 
 	if err := c.BodyParser(request); err != nil {
 		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
@@ -142,11 +142,11 @@ func (h *GarminHandler) GetUserProfile(c *fiber.Ctx) error {
 // @Description This endpoint is used to get Garmin step by date.
 // @Tags Garmin
 // @Accept  json
-// @Param request body request.StepByDateRequest false "..."
+// @Param request body request.GarminByDateRequest false "..."
 // @Produce  json
 // @Router /step-by-date [post]
 func (h *GarminHandler) GetStepByDate(c *fiber.Ctx) error {
-	request := new(request.StepByDateRequest)
+	request := new(request.GarminByDateRequest)
 
 	if err := c.BodyParser(request); err != nil {
 		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
@@ -157,6 +157,33 @@ func (h *GarminHandler) GetStepByDate(c *fiber.Ctx) error {
 	}
 
 	err := h.service.StepByDate(c.Context(), request)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, nil)
+}
+
+// HRVByDate godoc
+// @Summary HRVByDate
+// @Description This endpoint is used to get Garmin HRV by date.
+// @Tags Garmin
+// @Accept  json
+// @Param request body request.GarminByDateRequest false "..."
+// @Produce  json
+// @Router /hrv-by-date [post]
+func (h *GarminHandler) HRVByDate(c *fiber.Ctx) error {
+	request := new(request.GarminByDateRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	err := h.service.HRVByDate(c.Context(), request)
 	if err != nil {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
