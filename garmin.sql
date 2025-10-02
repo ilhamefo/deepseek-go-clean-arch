@@ -1,3 +1,19 @@
+/*
+ Navicat Premium Data Transfer
+ 
+ Source Server         : postgres local
+ Source Server Type    : PostgreSQL
+ Source Server Version : 140005 (140005)
+ Source Host           : localhost:5432
+ Source Catalog        : garmin
+ Source Schema         : public
+ 
+ Target Server Type    : PostgreSQL
+ Target Server Version : 140005 (140005)
+ File Encoding         : 65001
+ 
+ Date: 02/10/2025 09:35:09
+ */
 -- ----------------------------
 -- Sequence structure for activity_detail_metrics_id_seq
 -- ----------------------------
@@ -241,6 +257,75 @@ CREATE TABLE "public"."heart_rates" (
 );
 
 -- ----------------------------
+-- Table structure for hrv_baselines
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."hrv_baselines";
+
+CREATE TABLE "public"."hrv_baselines" (
+  "low_upper" int4,
+  "balanced_low" int4,
+  "balanced_upper" int4,
+  "marker_value" float8,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "user_profile_pk" int8,
+  "calendar_date" date
+);
+
+-- ----------------------------
+-- Table structure for hrv_data
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."hrv_data";
+
+CREATE TABLE "public"."hrv_data" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "start_timestamp_gmt" timestamp(6),
+  "end_timestamp_gmt" timestamp(6),
+  "start_timestamp_local" timestamp(6),
+  "end_timestamp_local" timestamp(6),
+  "sleep_start_timestamp_gmt" timestamp(6),
+  "sleep_end_timestamp_gmt" timestamp(6),
+  "sleep_start_timestamp_local" timestamp(6),
+  "sleep_end_timestamp_local" timestamp(6),
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
+-- Table structure for hrv_readings
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."hrv_readings";
+
+CREATE TABLE "public"."hrv_readings" (
+  "parent_id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8 NOT NULL,
+  "hrv_value" int4,
+  "reading_time_gmt" timestamp(6),
+  "reading_time_local" timestamp(6),
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
+-- Table structure for hrv_summaries
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."hrv_summaries";
+
+CREATE TABLE "public"."hrv_summaries" (
+  "user_profile_pk" int8,
+  "calendar_date" date,
+  "weekly_avg" int4,
+  "last_night_avg" int4,
+  "last_night_5min_high" int4,
+  "status" varchar(50) COLLATE "pg_catalog"."default",
+  "feedback_phrase" varchar(100) COLLATE "pg_catalog"."default",
+  "create_time_stamp" timestamp(6),
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
 -- Table structure for hydration_containers
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."hydration_containers";
@@ -289,11 +374,11 @@ CREATE TABLE "public"."split_summaries" (
 );
 
 -- ----------------------------
--- Table structure for step_details
+-- Table structure for steps
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."step_details";
+DROP TABLE IF EXISTS "public"."steps";
 
-CREATE TABLE "public"."step_details" (
+CREATE TABLE "public"."steps" (
   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
   "user_profile_pk" int8,
   "start_gmt" timestamp(6),
@@ -302,6 +387,19 @@ CREATE TABLE "public"."step_details" (
   "pushes" int4,
   "primary_activity_level" varchar(50) COLLATE "pg_catalog"."default",
   "activity_level_constant" bool,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
+-- Table structure for user_available_training_days
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_available_training_days";
+
+CREATE TABLE "public"."user_available_training_days" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "days" varchar [] [] [] COLLATE "pg_catalog"."default",
   "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
 );
@@ -383,6 +481,19 @@ CREATE TABLE "public"."user_power_formats" (
 );
 
 -- ----------------------------
+-- Table structure for user_preferred_long_training_days
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_preferred_long_training_days";
+
+CREATE TABLE "public"."user_preferred_long_training_days" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "days" varchar(50) [] COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
 -- Table structure for user_roles
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."user_roles";
@@ -438,42 +549,6 @@ CREATE TABLE "public"."user_sleep_windows" (
 );
 
 -- ----------------------------
--- Table structure for user_available_training_days
--- ----------------------------
-DROP TABLE IF EXISTS "public"."user_available_training_days";
-
-CREATE TABLE "public"."user_available_training_days" (
-  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-  "user_profile_pk" int8,
-  "days" VARCHAR(50) [],
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
-ALTER TABLE
-  "public"."user_available_training_days"
-ADD
-  CONSTRAINT "user_available_training_days_unique_fields" UNIQUE ("user_profile_pk");
-
--- ----------------------------
--- Table structure for user_preferred_long_training_days
--- ----------------------------
-DROP TABLE IF EXISTS "public"."user_preferred_long_training_days";
-
-CREATE TABLE "public"."user_preferred_long_training_days" (
-  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-  "user_profile_pk" int8,
-  "days" VARCHAR(50) [],
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
-ALTER TABLE
-  "public"."user_preferred_long_training_days"
-ADD
-  CONSTRAINT "user_preferred_long_training_days_unique_fields" UNIQUE ("user_profile_pk");
-
--- ----------------------------
 -- Table structure for weather_locations
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."weather_locations";
@@ -490,37 +565,6 @@ CREATE TABLE "public"."weather_locations" (
   "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
 );
-
--- ----------------------------
--- Table structure for steps
--- ----------------------------
-DROP TABLE IF EXISTS "public"."steps";
-
-CREATE TABLE "public"."steps" (
-  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-  "user_profile_pk" int8,
-  "start_gmt" timestamp(6),
-  "end_gmt" timestamp(6),
-  "steps" int4,
-  "pushes" int4,
-  "primary_activity_level" varchar(50) COLLATE "pg_catalog"."default",
-  "activity_level_constant" bool,
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
--- ----------------------------
--- Primary Key structure for table steps
--- ----------------------------
-ALTER TABLE
-  "public"."steps"
-ADD
-  CONSTRAINT "steps_pkey" PRIMARY KEY ("id");
-
-ALTER TABLE
-  "public"."steps"
-ADD
-  CONSTRAINT "steps_unique_fields" UNIQUE ("user_profile_pk", "start_gmt", "end_gmt");
 
 -- ----------------------------
 -- Function structure for uuid_generate_v1
@@ -657,6 +701,14 @@ ADD
   CONSTRAINT "activity_splits_pkey" PRIMARY KEY ("id");
 
 -- ----------------------------
+-- Uniques structure for table activity_types
+-- ----------------------------
+ALTER TABLE
+  "public"."activity_types"
+ADD
+  CONSTRAINT "activity_types_unique_fields" UNIQUE ("type_id", "type_key");
+
+-- ----------------------------
 -- Primary Key structure for table activity_types
 -- ----------------------------
 ALTER TABLE
@@ -681,12 +733,84 @@ ADD
   CONSTRAINT "event_types_pkey" PRIMARY KEY ("type_id");
 
 -- ----------------------------
+-- Uniques structure for table heart_rate_details
+-- ----------------------------
+ALTER TABLE
+  "public"."heart_rate_details"
+ADD
+  CONSTRAINT "heart_details_unique_fields" UNIQUE ("user_profile_pk", "timestamp");
+
+-- ----------------------------
+-- Uniques structure for table heart_rates
+-- ----------------------------
+ALTER TABLE
+  "public"."heart_rates"
+ADD
+  CONSTRAINT "heart_rate_unique_fields" UNIQUE ("user_profile_pk", "calendar_date");
+
+-- ----------------------------
 -- Primary Key structure for table heart_rates
 -- ----------------------------
 ALTER TABLE
   "public"."heart_rates"
 ADD
   CONSTRAINT "heart_rates_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Uniques structure for table hrv_baselines
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_baselines"
+ADD
+  CONSTRAINT "hrv_baselines_unique_fields" UNIQUE ("user_profile_pk", "calendar_date");
+
+-- ----------------------------
+-- Uniques structure for table hrv_data
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_data"
+ADD
+  CONSTRAINT "hrv_data_unique_fields" UNIQUE (
+    "user_profile_pk",
+    "start_timestamp_gmt",
+    "end_timestamp_gmt"
+  );
+
+-- ----------------------------
+-- Primary Key structure for table hrv_data
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_data"
+ADD
+  CONSTRAINT "hrv_data_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Uniques structure for table hrv_readings
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_readings"
+ADD
+  CONSTRAINT "hrv_readings_unique_fields" UNIQUE (
+    "parent_id",
+    "user_profile_pk",
+    "reading_time_gmt"
+  );
+
+-- ----------------------------
+-- Uniques structure for table hrv_summaries
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_summaries"
+ADD
+  CONSTRAINT "hrv_summaries_unique_fields" UNIQUE ("user_profile_pk", "calendar_date");
+
+-- ----------------------------
+-- Uniques structure for table hydration_containers
+-- ----------------------------
+ALTER TABLE
+  "public"."hydration_containers"
+ADD
+  CONSTRAINT "hydrations_containers_unique_fields" UNIQUE ("user_profile_pk", "volume", "unit", "name");
 
 -- ----------------------------
 -- Primary Key structure for table hydration_containers
@@ -713,12 +837,28 @@ ADD
   CONSTRAINT "split_summaries_pkey" PRIMARY KEY ("id");
 
 -- ----------------------------
--- Primary Key structure for table step_details
+-- Uniques structure for table steps
 -- ----------------------------
 ALTER TABLE
-  "public"."step_details"
+  "public"."steps"
 ADD
-  CONSTRAINT "step_details_pkey" PRIMARY KEY ("id");
+  CONSTRAINT "steps_unique_fields" UNIQUE ("user_profile_pk", "start_gmt", "end_gmt");
+
+-- ----------------------------
+-- Primary Key structure for table steps
+-- ----------------------------
+ALTER TABLE
+  "public"."steps"
+ADD
+  CONSTRAINT "steps_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Uniques structure for table user_available_training_days
+-- ----------------------------
+ALTER TABLE
+  "public"."user_available_training_days"
+ADD
+  CONSTRAINT "user_available_training_days_unique_fields" UNIQUE ("user_profile_pk");
 
 -- ----------------------------
 -- Uniques structure for table user_data
@@ -781,6 +921,14 @@ ALTER TABLE
   "public"."user_power_formats"
 ADD
   CONSTRAINT "user_power_formats_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Uniques structure for table user_preferred_long_training_days
+-- ----------------------------
+ALTER TABLE
+  "public"."user_preferred_long_training_days"
+ADD
+  CONSTRAINT "user_preferred_long_training_days_unique_fields" UNIQUE ("user_profile_pk");
 
 -- ----------------------------
 -- Primary Key structure for table user_roles
@@ -881,12 +1029,36 @@ ADD
   CONSTRAINT "available_training_days_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- ----------------------------
+-- Foreign Keys structure for table hrv_data
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_data"
+ADD
+  CONSTRAINT "hrv_data_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table hrv_readings
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_readings"
+ADD
+  CONSTRAINT "hrv_readings_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table hrv_summaries
+-- ----------------------------
+ALTER TABLE
+  "public"."hrv_summaries"
+ADD
+  CONSTRAINT "hrv_summaries_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
 -- Foreign Keys structure for table hydration_containers
 -- ----------------------------
 ALTER TABLE
   "public"."hydration_containers"
 ADD
-  CONSTRAINT "hydration_containers_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+  CONSTRAINT "hidration_user_pk" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- ----------------------------
 -- Foreign Keys structure for table split_summaries
@@ -895,14 +1067,6 @@ ALTER TABLE
   "public"."split_summaries"
 ADD
   CONSTRAINT "split_summaries_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "public"."activities" ("activity_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- ----------------------------
--- Foreign Keys structure for table step_details
--- ----------------------------
-ALTER TABLE
-  "public"."step_details"
-ADD
-  CONSTRAINT "step_details_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- ----------------------------
 -- Foreign Keys structure for table user_data
@@ -959,148 +1123,3 @@ ALTER TABLE
   "public"."weather_locations"
 ADD
   CONSTRAINT "weather_locations_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- ----------------------------
--- Table structure for hrv_baselines
--- ----------------------------
-DROP TABLE IF EXISTS "public"."hrv_baselines";
-
-CREATE TABLE "public"."hrv_baselines" (
-  "user_profile_pk" int8,
-  "calendar_date" date,
-  "low_upper" int4,
-  "balanced_low" int4,
-  "balanced_upper" int4,
-  "marker_value" float8,
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
--- ----------------------------
--- Table structure for hrv_summaries
--- ----------------------------
-DROP TABLE IF EXISTS "public"."hrv_summaries";
-
-CREATE TABLE "public"."hrv_summaries" (
-  "user_profile_pk" int8,
-  "calendar_date" date,
-  "weekly_avg" int4,
-  "last_night_avg" int4,
-  "last_night_5min_high" int4,
-  "status" varchar(50) COLLATE "pg_catalog"."default",
-  "feedback_phrase" varchar(100) COLLATE "pg_catalog"."default",
-  "create_time_stamp" timestamp(6),
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
--- ----------------------------
--- Table structure for hrv_readings
--- ----------------------------
-DROP TABLE IF EXISTS "public"."hrv_readings";
-
-CREATE TABLE "public"."hrv_readings" (
-  "parent_id" uuid NOT NULL,
-  "user_profile_pk" int8,
-  "hrv_value" int4,
-  "reading_time_gmt" timestamp(6),
-  "reading_time_local" timestamp(6),
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
--- ----------------------------
--- Table structure for hrv_data
--- ----------------------------
-DROP TABLE IF EXISTS "public"."hrv_data";
-
-CREATE TABLE "public"."hrv_data" (
-  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-  "user_profile_pk" int8,
-  "start_timestamp_gmt" timestamp(6),
-  "end_timestamp_gmt" timestamp(6),
-  "start_timestamp_local" timestamp(6),
-  "end_timestamp_local" timestamp(6),
-  "sleep_start_timestamp_gmt" timestamp(6),
-  "sleep_end_timestamp_gmt" timestamp(6),
-  "sleep_start_timestamp_local" timestamp(6),
-  "sleep_end_timestamp_local" timestamp(6),
-  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
-  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
-);
-
--- ----------------------------
--- Primary Key structure for table hrv_baselines
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_baselines"
-ADD
-  CONSTRAINT "hrv_baselines_pkey" PRIMARY KEY ("id");
-
--- ----------------------------
--- Primary Key structure for table hrv_summaries
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_summaries"
-ADD
-  CONSTRAINT "hrv_summaries_pkey" PRIMARY KEY ("id");
-
--- ----------------------------
--- Uniques structure for table hrv_summaries
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_summaries"
-ADD
-  CONSTRAINT "hrv_summaries_unique_fields" UNIQUE ("user_profile_pk", "calendar_date");
-
--- ----------------------------
--- Primary Key structure for table hrv_readings
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_readings"
-ADD
-  CONSTRAINT "hrv_readings_pkey" PRIMARY KEY ("id");
-
--- ----------------------------
--- Primary Key structure for table hrv_data
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_data"
-ADD
-  CONSTRAINT "hrv_data_pkey" PRIMARY KEY ("id");
-
--- ----------------------------
--- Uniques structure for table hrv_data
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_data"
-ADD
-  CONSTRAINT "hrv_data_unique_fields" UNIQUE (
-    "user_profile_pk",
-    "start_timestamp_gmt",
-    "end_timestamp_gmt"
-  );
-
--- ----------------------------
--- Foreign Keys structure for table hrv_summaries
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_summaries"
-ADD
-  CONSTRAINT "hrv_summaries_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- ----------------------------
--- Foreign Keys structure for table hrv_readings
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_readings"
-ADD
-  CONSTRAINT "hrv_readings_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
-
--- ----------------------------
--- Foreign Keys structure for table hrv_data
--- ----------------------------
-ALTER TABLE
-  "public"."hrv_data"
-ADD
-  CONSTRAINT "hrv_data_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
