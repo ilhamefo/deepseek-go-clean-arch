@@ -12,7 +12,7 @@
  Target Server Version : 140005 (140005)
  File Encoding         : 65001
  
- Date: 02/10/2025 09:35:09
+ Date: 09/10/2025 13:18:55
  */
 -- ----------------------------
 -- Sequence structure for activity_detail_metrics_id_seq
@@ -392,6 +392,26 @@ CREATE TABLE "public"."steps" (
 );
 
 -- ----------------------------
+-- Table structure for stress_events
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."stress_events";
+
+CREATE TABLE "public"."stress_events" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "event_type" varchar(20) COLLATE "pg_catalog"."default",
+  "event_start_time_gmt" timestamp(6),
+  "timezone_offset" int8,
+  "duration_in_milliseconds" int8,
+  "body_battery_impact" int4,
+  "feedback_type" varchar(50) COLLATE "pg_catalog"."default",
+  "short_feedback" varchar(50) COLLATE "pg_catalog"."default",
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "daily_stress_id" uuid NOT NULL
+);
+
+-- ----------------------------
 -- Table structure for user_available_training_days
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."user_available_training_days";
@@ -402,6 +422,25 @@ CREATE TABLE "public"."user_available_training_days" (
   "days" varchar [] [] [] COLLATE "pg_catalog"."default",
   "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
+-- Table structure for user_daily_stress
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."user_daily_stress";
+
+CREATE TABLE "public"."user_daily_stress" (
+  "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "user_profile_pk" int8,
+  "calendar_date" date,
+  "activity_name" varchar(255) COLLATE "pg_catalog"."default",
+  "activity_type" varchar(100) COLLATE "pg_catalog"."default",
+  "activity_id" int8,
+  "average_stress" float8,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "event_type" text COLLATE "pg_catalog"."default",
+  "event_start_time_gmt" timestamp(6)
 );
 
 -- ----------------------------
@@ -853,12 +892,50 @@ ADD
   CONSTRAINT "steps_pkey" PRIMARY KEY ("id");
 
 -- ----------------------------
+-- Uniques structure for table stress_events
+-- ----------------------------
+ALTER TABLE
+  "public"."stress_events"
+ADD
+  CONSTRAINT "body_battery_fields" UNIQUE ("user_profile_pk", "event_start_time_gmt");
+
+-- ----------------------------
+-- Primary Key structure for table stress_events
+-- ----------------------------
+ALTER TABLE
+  "public"."stress_events"
+ADD
+  CONSTRAINT "body_batteryts_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
 -- Uniques structure for table user_available_training_days
 -- ----------------------------
 ALTER TABLE
   "public"."user_available_training_days"
 ADD
   CONSTRAINT "user_available_training_days_unique_fields" UNIQUE ("user_profile_pk");
+
+-- ----------------------------
+-- Uniques structure for table user_daily_stress
+-- ----------------------------
+ALTER TABLE
+  "public"."user_daily_stress"
+ADD
+  CONSTRAINT "user_daily_stress_unique_fields" UNIQUE (
+    "user_profile_pk",
+    "calendar_date",
+    "activity_id",
+    "event_type",
+    "event_start_time_gmt"
+  );
+
+-- ----------------------------
+-- Primary Key structure for table user_daily_stress
+-- ----------------------------
+ALTER TABLE
+  "public"."user_daily_stress"
+ADD
+  CONSTRAINT "user_daily_stress_pkey" PRIMARY KEY ("id");
 
 -- ----------------------------
 -- Uniques structure for table user_data
@@ -1067,6 +1144,22 @@ ALTER TABLE
   "public"."split_summaries"
 ADD
   CONSTRAINT "split_summaries_activity_id_fkey" FOREIGN KEY ("activity_id") REFERENCES "public"."activities" ("activity_id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table stress_events
+-- ----------------------------
+ALTER TABLE
+  "public"."stress_events"
+ADD
+  CONSTRAINT "stress_events_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+-- ----------------------------
+-- Foreign Keys structure for table user_daily_stress
+-- ----------------------------
+ALTER TABLE
+  "public"."user_daily_stress"
+ADD
+  CONSTRAINT "user_daily_stress_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- ----------------------------
 -- Foreign Keys structure for table user_data
