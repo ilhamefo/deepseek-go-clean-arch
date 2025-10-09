@@ -199,6 +199,21 @@ CREATE TABLE "public"."activity_types" (
 );
 
 -- ----------------------------
+-- Table structure for stress_details
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."stress_details";
+
+CREATE TABLE "public"."stress_details" (
+  "user_profile_pk" int8,
+  "timestamp" int8,
+  "stress_level" int2,
+  "training_day" varchar(20) COLLATE "pg_catalog"."default",
+  "is_preferred_long_day" bool DEFAULT false,
+  "created_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------
 -- Table structure for available_training_days
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."available_training_days";

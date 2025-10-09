@@ -6,11 +6,12 @@ import (
 
 type GarminRepository interface {
 	Update(activities []*Activity) error
-	UpsertHeartRateByDate(data *HeartRate) error
+	UpsertHeartRateByDate(ctx context.Context, data *HeartRate) error
 	UpsertUserSettings(data *UserSetting) (err error)
 	UpsertSteps(ctx context.Context, data []*Step) (err error)
 	UpsertHRVByDate(ctx context.Context, data *HRVData) (err error)
 	UpsertActivityTypes(ctx context.Context, data []*ActivityType) (err error)
+	UpsertBodyBatteryByDate(ctx context.Context, data []*StressData) (err error)
 }
 
 type ActivityType struct {
@@ -320,4 +321,91 @@ type Step struct {
 
 func (Step) TableName() string {
 	return "steps"
+}
+
+// StressEvent represents the stress event information
+type StressEvent struct {
+	ID                     string `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK          int64  `json:"userProfilePK" gorm:"column:user_profile_pk"`
+	StressDataID           string `json:"-" gorm:"column:daily_stress_id"`
+	EventType              string `json:"eventType" gorm:"column:event_type;size:50"`
+	EventStartTimeGmt      string `json:"eventStartTimeGmt" gorm:"column:event_start_time_gmt;type:timestamp"`
+	TimezoneOffset         int64  `json:"timezoneOffset" gorm:"column:timezone_offset"`
+	DurationInMilliseconds int64  `json:"durationInMilliseconds" gorm:"column:duration_in_milliseconds"`
+	BodyBatteryImpact      int    `json:"bodyBatteryImpact" gorm:"column:body_battery_impact"`
+	FeedbackType           string `json:"feedbackType" gorm:"column:feedback_type;size:50"`
+	ShortFeedback          string `json:"shortFeedback" gorm:"column:short_feedback;size:100"`
+}
+
+func (StressEvent) TableName() string {
+	return "stress_events"
+}
+
+// StressValueDescriptor represents the descriptor for stress values
+type StressValueDescriptor struct {
+	Key   string `json:"key" gorm:"column:key;size:50"`
+	Index int    `json:"index" gorm:"column:index"`
+}
+
+// BodyBatteryValueDescriptor represents the descriptor for body battery values
+type BodyBatteryValueDescriptor struct {
+	BodyBatteryValueDescriptorIndex int    `json:"bodyBatteryValueDescriptorIndex" gorm:"column:body_battery_value_descriptor_index"`
+	BodyBatteryValueDescriptorKey   string `json:"bodyBatteryValueDescriptorKey" gorm:"column:body_battery_value_descriptor_key;size:50"`
+}
+
+// BodyBatteryVersion represents the version information in body battery values
+type BodyBatteryVersion struct {
+	Source      string `json:"source" gorm:"column:source;size:50"`
+	ParsedValue int    `json:"parsedValue" gorm:"column:parsed_value"`
+}
+
+// StressData represents the complete stress data response from Garmin API
+type StressData struct {
+	ID                                 string                       `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK                      int64                        `json:"userProfilePK" gorm:"column:user_profile_pk"`
+	CalendarDate                       string                       `json:"calendarDate" gorm:"column:calendar_date;type:date"`
+	ActivityName                       string                       `json:"activityName" gorm:"column:activity_name;size:255"`
+	EventStartTimeGmt                  string                       `json:"eventStartTimeGmt" gorm:"column:event_start_time_gmt;type:timestamp"`
+	ActivityType                       string                       `json:"activityType" gorm:"column:activity_type;size:100"`
+	ActivityID                         int64                        `json:"activityId" gorm:"column:activity_id"`
+	AverageStress                      float64                      `json:"averageStress" gorm:"column:average_stress;type:decimal(8,4)"`
+	EventType                          string                       `json:"eventType" gorm:"column:event_type;size:50"`
+	Event                              StressEvent                  `json:"event" gorm:"-"`
+	StressValueDescriptorsDTOList      []StressValueDescriptor      `json:"stressValueDescriptorsDTOList" gorm:"-"`
+	StressValuesArray                  [][]int64                    `json:"stressValuesArray" gorm:"-"`
+	BodyBatteryValueDescriptorsDTOList []BodyBatteryValueDescriptor `json:"bodyBatteryValueDescriptorsDTOList" gorm:"-"`
+	BodyBatteryValuesArray             [][]interface{}              `json:"bodyBatteryValuesArray" gorm:"-"`
+}
+
+func (StressData) TableName() string {
+	return "user_daily_stress"
+}
+
+// StressDetail represents individual stress measurements
+type StressDetail struct {
+	ID            string `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK int64  `json:"userProfilePK" gorm:"column:user_profile_pk"`
+	CalendarDate  string `json:"calendarDate" gorm:"column:calendar_date;type:date"`
+	Timestamp     int64  `json:"timestamp" gorm:"column:timestamp"`
+	StressLevel   int    `json:"stressLevel" gorm:"column:stress_level"`
+}
+
+func (StressDetail) TableName() string {
+	return "stress_details"
+}
+
+// BodyBatteryDetail represents individual body battery measurements
+type BodyBatteryDetail struct {
+	ID                string `json:"id" gorm:"column:id;primaryKey"`
+	UserProfilePK     int64  `json:"userProfilePK" gorm:"column:user_profile_pk"`
+	CalendarDate      string `json:"calendarDate" gorm:"column:calendar_date;type:date"`
+	Timestamp         int64  `json:"timestamp" gorm:"column:timestamp"`
+	BodyBatteryStatus string `json:"bodyBatteryStatus" gorm:"column:body_battery_status;size:20"`
+	BodyBatteryLevel  int    `json:"bodyBatteryLevel" gorm:"column:body_battery_level"`
+	VersionSource     string `json:"versionSource" gorm:"column:version_source;size:50"`
+	VersionParsed     int    `json:"versionParsed" gorm:"column:version_parsed"`
+}
+
+func (BodyBatteryDetail) TableName() string {
+	return "body_battery_details"
 }

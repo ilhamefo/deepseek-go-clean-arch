@@ -15,6 +15,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	DAYS_TO_FETCH = 60
+	timeout       = 30
+)
+
 type GarminService struct {
 	repo       domain.GarminRepository
 	logger     *zap.Logger
@@ -24,7 +29,7 @@ type GarminService struct {
 
 func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config) *GarminService {
 	httpClient := httptrace.WrapClient(&http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: timeout * time.Second,
 	}, httptrace.WithService("http-client"))
 
 	return &GarminService{
@@ -99,6 +104,17 @@ func (s *GarminService) FetchSplits(ctx context.Context, r *request.GarminBasicR
 	return res, nil
 }
 
+// Refresh performs a comprehensive data synchronization for a Garmin user account.
+// It first refreshes all activities, then fetches heart rate and step data for the past 60 days.
+// The method continues processing even if individual date requests fail, logging errors for failed operations.
+// Returns an error only if the initial activity refresh fails, otherwise returns nil.
+//
+// Parameters:
+//   - ctx: Context for request lifecycle management
+//   - r: GarminBasicRequest containing user authentication and basic request data
+//
+// Returns:
+//   - error: Returns error if activity refresh fails, nil otherwise
 func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicRequest) (err error) {
 
 	err = s.refreshActivities(ctx, r)
@@ -107,9 +123,10 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicReque
 		return err
 	}
 
-	// fetch Heart Rate Data 1 month back
+	// fetch Heart Rate Data for the past 60 days
 	now := time.Now()
-	for i := 0; i < 60; i++ {
+	days := make([]int, DAYS_TO_FETCH)
+	for i := range days {
 		date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
 		hrRequest := &request.GarminByDateRequest{
@@ -420,10 +437,10 @@ func (s *GarminService) HeartRateByDate(ctx context.Context, r *request.GarminBy
 		return err
 	}
 
-	return s.upsertHeartRateByDate(hrData)
+	return s.upsertHeartRateByDate(ctx, hrData)
 }
 
-func (s *GarminService) upsertHeartRateByDate(models *domain.HeartRate) (err error) {
+func (s *GarminService) upsertHeartRateByDate(ctx context.Context, models *domain.HeartRate) (err error) {
 	if models == nil {
 		s.logger.Info("no_heart_rate_data_to_upsert")
 		return nil
@@ -431,7 +448,7 @@ func (s *GarminService) upsertHeartRateByDate(models *domain.HeartRate) (err err
 
 	s.logger.Info("starting_upsert_heart_rate", zap.Int64("user_profile_pk", models.UserProfilePK), zap.String("calendar_date", models.CalendarDate))
 
-	err = s.repo.UpsertHeartRateByDate(models)
+	err = s.repo.UpsertHeartRateByDate(ctx, models)
 	if err != nil {
 		s.logger.Error("error_upsert_heart_rate", zap.Error(err), zap.Int64("user_profile_pk", models.UserProfilePK), zap.String("calendar_date", models.CalendarDate))
 		return err
@@ -705,6 +722,94 @@ func (s *GarminService) GetActivityTypes(ctx context.Context, r *request.GarminB
 	if err != nil {
 		s.logger.Error("error_upsert_activity_types", zap.Error(err))
 		return err
+	}
+
+	return nil
+}
+
+func (s *GarminService) GetBodyBatteryByDate(ctx context.Context, r *request.GarminByDateRequest) (err error) {
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/wellness-service/wellness/bodyBattery/events/%s", r.Date)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return err
+	}
+
+	// Header
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return err
+	}
+
+	var stressData []*domain.StressData
+	err = json.Unmarshal(body, &stressData)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
+		return err
+	}
+
+	if len(stressData) > 0 {
+
+		userSettings, err := s.GetUserSettings(ctx, &request.GarminBasicRequest{
+			GarminCsrfToken: r.GarminCsrfToken,
+			Cookies:         r.Cookies,
+		}, false)
+
+		if err != nil {
+			s.logger.Error("error_get_user_settings", zap.Error(err))
+			return err
+		}
+
+		for index := range stressData {
+			stressData[index].CalendarDate = r.Date
+			stressData[index].UserProfilePK = userSettings.ID
+			stressData[index].EventType = stressData[index].Event.EventType
+			stressData[index].Event.UserProfilePK = userSettings.ID
+			stressData[index].EventStartTimeGmt = stressData[index].Event.EventStartTimeGmt
+		}
+
+		s.logger.Info("=== info_values_stress ===",
+			zap.Int("count", len(stressData[0].StressValuesArray)),
+			zap.Any("values", stressData[0].StressValuesArray[0]),
+			zap.Any("timestamp", stressData[0].StressValuesArray[0][0]),
+			zap.Any("val", stressData[0].StressValuesArray[0][1]),
+		)
+
+		// for _, stress := range stressData[0].StressValuesArray {
+		// 	if len(stress) < 2 {
+		// 		continue
+		// 	}
+		// }
+
+		err = s.repo.UpsertBodyBatteryByDate(ctx, stressData)
+		if err != nil {
+			s.logger.Error("error_upsert_body_battery", zap.Error(err))
+			return err
+		}
 	}
 
 	return nil

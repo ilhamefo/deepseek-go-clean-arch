@@ -196,13 +196,13 @@ func (r *GarminRepo) processRelatedData(tx *gorm.DB, activity *domain.Activity) 
 	return nil
 }
 
-func (r *GarminRepo) UpsertHeartRateByDate(data *domain.HeartRate) (err error) {
+func (r *GarminRepo) UpsertHeartRateByDate(ctx context.Context, data *domain.HeartRate) (err error) {
 	if data == nil {
 		r.logger.Info("no heart rate data to upsert")
 		return nil
 	}
 
-	tx := r.db.Begin()
+	tx := r.db.WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -697,24 +697,36 @@ func (r *GarminRepo) UpsertActivityTypes(ctx context.Context, data []*domain.Act
 	}
 
 	// Check context cancellation
-	select {
-	case <-ctx.Done():
-		tx.Rollback()
-		return ctx.Err()
-	default:
-	}
+	// select {
+	// case <-ctx.Done():
+	// 	tx.Rollback()
+	// 	return ctx.Err()
+	// default:
+	// }
 
-	err = tx.Omit("ID").Clauses(
-		clause.OnConflict{
-			Columns: []clause.Column{
-				{Name: "type_id"},
-				{Name: "type_key"},
-			},
-			UpdateAll: true,
-		}).Create(&data).Error
-	if err != nil {
+	// err = tx.Omit("ID").Clauses(
+	// 	clause.OnConflict{
+	// 		Columns: []clause.Column{
+	// 			{Name: "type_id"},
+	// 			{Name: "type_key"},
+	// 		},
+	// 		UpdateAll: true,
+	// 	}).Create(&data).Error
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	r.logger.Error("failed to upsert hrv", zap.Error(err))
+	// 	return err
+	// }
+
+	// if err := tx.Commit().Error; err != nil {
+	// 	r.logger.Error("failed to commit transaction", zap.Error(err))
+	// 	return err
+	// }
+
+	// Sleep for 5 seconds
+	if err = tx.Exec("SELECT pg_sleep(5)").Error; err != nil {
 		tx.Rollback()
-		r.logger.Error("failed to upsert hrv", zap.Error(err))
+		r.logger.Error("failed to execute sleep query", zap.Error(err))
 		return err
 	}
 
@@ -724,4 +736,85 @@ func (r *GarminRepo) UpsertActivityTypes(ctx context.Context, data []*domain.Act
 	}
 
 	return err
+}
+
+func (r *GarminRepo) UpsertBodyBatteryByDate(ctx context.Context, data []*domain.StressData) (err error) {
+	if len(data) == 0 {
+		r.logger.Info("no_stress_data_to_upsert")
+		return nil
+	}
+
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	// exec here
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "calendar_date"},
+				{Name: "event_start_time_gmt"},
+				{Name: "activity_id"},
+				{Name: "event_type"},
+			},
+			UpdateAll: true,
+		}).
+		Create(&data).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to stress data", zap.Error(err))
+		return err
+	}
+
+	var stressEvents []*domain.StressEvent
+
+	for _, d := range data {
+		stressEvents = append(stressEvents, &domain.StressEvent{
+			ID:                     d.Event.ID,
+			UserProfilePK:          d.UserProfilePK,
+			EventType:              d.Event.EventType,
+			EventStartTimeGmt:      d.Event.EventStartTimeGmt,
+			TimezoneOffset:         d.Event.TimezoneOffset,
+			DurationInMilliseconds: d.Event.DurationInMilliseconds,
+			BodyBatteryImpact:      d.Event.BodyBatteryImpact,
+			FeedbackType:           d.Event.FeedbackType,
+			ShortFeedback:          d.Event.ShortFeedback,
+			StressDataID:           d.ID,
+		})
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "event_start_time_gmt"},
+			},
+			UpdateAll: true,
+		}).
+		Create(&stressEvents).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to stress event", zap.Error(err))
+		return err
+	}
+
+	// exec end here
+
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

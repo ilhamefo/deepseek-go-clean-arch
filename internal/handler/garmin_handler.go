@@ -8,18 +8,21 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 type GarminHandler struct {
 	service *service.GarminService
 	handler *common.Handler
+	logger  *zap.Logger
 }
 
 // NewGarminHandler creates a new GarminHandler
-func NewGarminHandler(service *service.GarminService, handler *common.Handler) *GarminHandler {
+func NewGarminHandler(service *service.GarminService, logger *zap.Logger, handler *common.Handler) *GarminHandler {
 	return &GarminHandler{
 		service: service,
 		handler: handler,
+		logger:  logger,
 	}
 }
 
@@ -211,6 +214,33 @@ func (h *GarminHandler) GetActivityTypes(c *fiber.Ctx) error {
 	}
 
 	err := h.service.GetActivityTypes(c.Context(), request)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, nil)
+}
+
+// GetBodyBatteryByDate godoc
+// @Summary GetBodyBatteryByDate
+// @Description This endpoint is used to get Garmin activity types.
+// @Tags Garmin
+// @Accept  json
+// @Param request body request.GarminByDateRequest false "..."
+// @Produce  json
+// @Router /body-battery-by-date [post]
+func (h *GarminHandler) GetBodyBatteryByDate(c *fiber.Ctx) error {
+	request := new(request.GarminByDateRequest)
+
+	if err := c.BodyParser(request); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	if err := h.handler.Validator.Struct(request); err != nil {
+		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
+	}
+
+	err := h.service.GetBodyBatteryByDate(c.Context(), request)
 	if err != nil {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}

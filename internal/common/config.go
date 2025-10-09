@@ -64,6 +64,7 @@ type Config struct {
 	DDVersion                 string        `mapstructure:"DD_VERSION"`
 	DDAentHost                string        `mapstructure:"DD_AGENT_HOST"`
 	DDTraceAgentPort          string        `mapstructure:"DD_TRACE_AGENT_PORT"`
+	Timeout                   int           `mapstructure:"TIMEOUT"` // http client timeout in seconds
 }
 
 func Load() (*Config, error) {
