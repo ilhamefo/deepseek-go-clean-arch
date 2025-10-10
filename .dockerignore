@@ -1,0 +1,186 @@
+# Git files
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim
+.netrwhist
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/build/
+/bin/
+/dist/
+/target/
+main
+main.exe
+user
+user.exe
+
+# Go specific
+vendor/
+*.mod.bak
+*.sum.bak
+/pkg/
+
+# Documentation
+README.md
+*.md
+docs/
+doc/
+documentation/
+
+# Docker files (except main Dockerfile)
+docker-compose*.yml
+docker-compose*.yaml
+.dockerignore
+Dockerfile.*
+!Dockerfile
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.gitlab/
+.circleci/
+.travis.yml
+.appveyor.yml
+Jenkinsfile
+azure-pipelines.yml
+buildspec.yml
+
+# Environment files
+.env
+.env.*
+.environment
+config.local.*
+*.local
+
+# Log files
+*.log
+*.pid
+*.seed
+*.pid.lock
+logs/
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pids
+logs.txt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+.sass-cache/
+
+# Test files and coverage
+*_test.go
+coverage.out
+coverage.html
+coverage.txt
+test/
+tests/
+__tests__/
+.nyc_output/
+coverage/
+.coverage
+htmlcov/
+
+# Development scripts
+scripts/
+Makefile
+makefile
+*.mk
+*.make
+
+# Node.js (if any frontend assets)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnp
+.pnp.js
+package-lock.json
+yarn.lock
+
+# Python (if any scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Editor specific
+*~
+.#*
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+
+# Archive files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Files directory (seems to contain data files)
+files/
+data/
+assets/
+uploads/
+
+# Bash dump files
+*.stackdump
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Config files that shouldn't be in image
+garmin.sql

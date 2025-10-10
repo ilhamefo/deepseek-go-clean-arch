@@ -1,0 +1,44 @@
+# Development overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  auth-service:
+    build:
+      args:
+        VERSION: dev
+    environment:
+      - GO_ENV=development
+    volumes:
+      # Mount source code for live reload (if using air or similar)
+      - ./cmd:/app/cmd:ro
+      - ./internal:/app/internal:ro
+      - ./logs:/app/logs:rw
+    ports:
+      - "5051:5051"
+      - "2345:2345"  # Delve debugger port
+    restart: "no"
+
+  postgres:
+    environment:
+      - POSTGRES_DB=garmin_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      # Additional development scripts
+      - ./scripts/dev-data.sql:/docker-entrypoint-initdb.d/03-dev-data.sql:ro
+
+  redis:
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+
+  # Enable development tools by default
+  pgadmin:
+    profiles: []  # Remove from profiles to enable by default
+
+  redis-commander:
+    profiles: []  # Remove from profiles to enable by default

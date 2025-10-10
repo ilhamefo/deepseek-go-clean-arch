@@ -1,0 +1,84 @@
+# syntax=docker/dockerfile:1
+# Alternative Dockerfile for CGO applications
+
+# Build arguments
+ARG GO_VERSION=1.23
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG SERVICE_NAME=auth-service
+
+# Build stage
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS builder
+
+# Install build dependencies including gcc for CGO
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    gcc \
+    musl-dev \
+    libc-dev
+
+# Set working directory
+WORKDIR /src
+
+# Build arguments for cross-compilation
+ARG TARGETOS TARGETARCH
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies with cache mount
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
+
+# Copy source code
+COPY . .
+
+# Build with CGO enabled for static linking
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 \
+    GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH} \
+    go build \
+    -buildvcs=false \
+    -mod=readonly \
+    -trimpath \
+    -ldflags "-s -w -linkmode external -extldflags '-static' -X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev')" \
+    -o /app/${SERVICE_NAME} \
+    ./cmd/server
+
+# Runtime stage for CGO applications
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+# Metadata labels
+LABEL org.opencontainers.image.title="Auth Service Go (CGO)" \
+      org.opencontainers.image.description="Event Registration Auth Service with CGO support" \
+      org.opencontainers.image.source="https://github.com/ilhamefo/deepseek-go-clean-arch" \
+      org.opencontainers.image.vendor="ilhamefo"
+
+# Build arguments for runtime
+ARG SERVICE_NAME=auth-service
+ARG PORT=5051
+
+# Set environment variables
+ENV PORT=${PORT} \
+    GO_ENV=production
+
+# Copy the binary from builder stage
+COPY --from=builder /app/${SERVICE_NAME} /app
+
+# Use non-root user (already set in distroless)
+USER 65532:65532
+
+# Expose port
+EXPOSE ${PORT}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["/app", "--health"] || exit 1
+
+# Set the entrypoint
+ENTRYPOINT ["/app"]
