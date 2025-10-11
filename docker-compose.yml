@@ -25,13 +25,13 @@ services:
       - DB_PORT=5432
       - DB_USER=${POSTGRES_USER:-postgres}
       - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - DB_NAME=${POSTGRES_DB:-garmin_db}
+      - DB_NAME=${POSTGRES_DB}
       - DB_SSL_MODE=disable
       - GARMIN_DB_HOST=postgres
       - GARMIN_DB_PORT=5432
       - GARMIN_DB_USER=${POSTGRES_USER:-postgres}
       - GARMIN_DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - GARMIN_DB_NAME=${POSTGRES_DB:-garmin_db}
+      - GARMIN_DB_NAME=${POSTGRES_DB}
       - GARMIN_DB_SSL_MODE=disable
     depends_on:
       postgres:
@@ -61,7 +61,7 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-garmin_db}
+      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     ports:
       - "5432:5432"
@@ -73,7 +73,7 @@ services:
     networks:
       - auth-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-garmin_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5

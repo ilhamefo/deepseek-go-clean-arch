@@ -14,6 +14,9 @@
  
  Date: 09/10/2025 13:18:55
  */
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- ----------------------------
 -- Sequence structure for activity_detail_metrics_id_seq
 -- ----------------------------
@@ -620,95 +623,95 @@ CREATE TABLE "public"."weather_locations" (
   "updated_at" timestamp(6) DEFAULT CURRENT_TIMESTAMP
 );
 
--- ----------------------------
--- Function structure for uuid_generate_v1
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_generate_v1"();
+-- -- ----------------------------
+-- -- Function structure for uuid_generate_v1
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_generate_v1"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_generate_v1"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_generate_v1' LANGUAGE c VOLATILE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_generate_v1"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_generate_v1' LANGUAGE c VOLATILE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_generate_v1mc
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_generate_v1mc"();
+-- -- ----------------------------
+-- -- Function structure for uuid_generate_v1mc
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_generate_v1mc"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_generate_v1mc"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_generate_v1mc' LANGUAGE c VOLATILE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_generate_v1mc"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_generate_v1mc' LANGUAGE c VOLATILE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_generate_v3
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_generate_v3"("namespace" uuid, "name" text);
+-- -- ----------------------------
+-- -- Function structure for uuid_generate_v3
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_generate_v3"("namespace" uuid, "name" text);
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_generate_v3"("namespace" uuid, "name" text) RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_generate_v3' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_generate_v3"("namespace" uuid, "name" text) RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_generate_v3' LANGUAGE c IMMUTABLE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_generate_v4
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_generate_v4"();
+-- -- ----------------------------
+-- -- Function structure for uuid_generate_v4
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_generate_v4"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_generate_v4"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_generate_v4' LANGUAGE c VOLATILE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_generate_v4"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_generate_v4' LANGUAGE c VOLATILE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_generate_v5
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_generate_v5"("namespace" uuid, "name" text);
+-- -- ----------------------------
+-- -- Function structure for uuid_generate_v5
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_generate_v5"("namespace" uuid, "name" text);
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_generate_v5"("namespace" uuid, "name" text) RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_generate_v5' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_generate_v5"("namespace" uuid, "name" text) RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_generate_v5' LANGUAGE c IMMUTABLE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_nil
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_nil"();
+-- -- ----------------------------
+-- -- Function structure for uuid_nil
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_nil"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_nil"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_nil' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_nil"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_nil' LANGUAGE c IMMUTABLE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_ns_dns
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_ns_dns"();
+-- -- ----------------------------
+-- -- Function structure for uuid_ns_dns
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_ns_dns"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_ns_dns"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_ns_dns' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_ns_dns"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_ns_dns' LANGUAGE c IMMUTABLE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_ns_oid
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_ns_oid"();
+-- -- ----------------------------
+-- -- Function structure for uuid_ns_oid
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_ns_oid"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_ns_oid"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_ns_oid' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_ns_oid"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_ns_oid' LANGUAGE c IMMUTABLE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_ns_url
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_ns_url"();
+-- -- ----------------------------
+-- -- Function structure for uuid_ns_url
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_ns_url"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_ns_url"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_ns_url' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_ns_url"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_ns_url' LANGUAGE c IMMUTABLE STRICT COST 1;
 
--- ----------------------------
--- Function structure for uuid_ns_x500
--- ----------------------------
-DROP FUNCTION IF EXISTS "public"."uuid_ns_x500"();
+-- -- ----------------------------
+-- -- Function structure for uuid_ns_x500
+-- -- ----------------------------
+-- DROP FUNCTION IF EXISTS "public"."uuid_ns_x500"();
 
-CREATE
-OR REPLACE FUNCTION "public"."uuid_ns_x500"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
-'uuid_ns_x500' LANGUAGE c IMMUTABLE STRICT COST 1;
+-- CREATE
+-- OR REPLACE FUNCTION "public"."uuid_ns_x500"() RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp',
+-- 'uuid_ns_x500' LANGUAGE c IMMUTABLE STRICT COST 1;
 
 -- ----------------------------
 -- Alter sequences owned by

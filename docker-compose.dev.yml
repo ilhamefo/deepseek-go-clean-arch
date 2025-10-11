@@ -7,6 +7,7 @@ services:
       args:
         VERSION: dev
     environment:
+      - CONFIG_PATH=../.env.dev
       - GO_ENV=development
     volumes:
       # Mount source code for live reload (if using air or similar)
@@ -20,7 +21,7 @@ services:
 
   postgres:
     environment:
-      - POSTGRES_DB=garmin_dev
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -30,6 +31,8 @@ services:
   redis:
     ports:
       - "6379:6379"
+    networks:
+      - auth-network
     command: >
       redis-server
       --appendonly yes

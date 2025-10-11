@@ -72,9 +72,9 @@ azure-pipelines.yml
 buildspec.yml
 
 # Environment files
-.env
-.env.*
-.environment
+# .env
+# .env.*
+# .environment
 config.local.*
 *.local
 
@@ -83,7 +83,7 @@ config.local.*
 *.pid
 *.seed
 *.pid.lock
-logs/
+# logs/
 log/
 npm-debug.log*
 yarn-debug.log*
