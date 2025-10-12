@@ -45,3 +45,11 @@ services:
 
   redis-commander:
     profiles: []  # Remove from profiles to enable by default
+
+  # Enable Datadog Agent for development monitoring
+  datadog-agent:
+    profiles: []  # Remove from profiles to enable by default
+    environment:
+      - DD_ENV=development
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=false  # Reduce logging in dev
+      - DD_PROCESS_AGENT_ENABLED=false  # Disable process monitoring in dev
