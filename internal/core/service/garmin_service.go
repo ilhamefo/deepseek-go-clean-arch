@@ -12,6 +12,7 @@ import (
 	"time"
 
 	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -21,23 +22,44 @@ const (
 )
 
 type GarminService struct {
-	repo       domain.GarminRepository
-	logger     *zap.Logger
-	config     *common.Config
-	httpClient *http.Client
+	repo        domain.GarminRepository
+	logger      *zap.Logger
+	config      *common.Config
+	httpClient  *http.Client
+	redisClient *redis.Client
 }
 
-func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config) *GarminService {
+func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config, redisClient *redis.Client) *GarminService {
 	httpClient := httptrace.WrapClient(&http.Client{
 		Timeout: timeout * time.Second,
 	}, httptrace.WithService("http-client"))
 
 	return &GarminService{
-		repo:       repo,
-		logger:     logger,
-		config:     config,
-		httpClient: httpClient,
+		repo:        repo,
+		logger:      logger,
+		config:      config,
+		httpClient:  httpClient,
+		redisClient: redisClient,
 	}
+}
+
+func (s *GarminService) HealthCheck(ctx context.Context) (err error) {
+	// readyz check redis
+	result, err := s.redisClient.Ping(ctx).Result()
+	if err != nil {
+		s.logger.Error("error_ping_redis", zap.Error(err))
+		return err
+	}
+
+	s.logger.Info("redis_ping_success", zap.String("result", result))
+
+	err = s.repo.HealthCheck(ctx)
+	if err != nil {
+		s.logger.Error("error_ping_database", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (s *GarminService) FetchSplits(ctx context.Context, r *request.GarminBasicRequest, activityID string) (res *domain.ActivitySplitsResponse, err error) {

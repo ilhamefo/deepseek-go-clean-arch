@@ -247,3 +247,19 @@ func (h *GarminHandler) GetBodyBatteryByDate(c *fiber.Ctx) error {
 
 	return h.handler.ResponseSuccess(c, nil)
 }
+
+// Health Check godoc
+// @Summary Health Check
+// @Description This endpoint is used to Health Check this app.
+// @Tags Garmin
+// @Accept  json
+// @Produce  json
+// @Router /health-check [get]
+func (h *GarminHandler) HealthCheck(c *fiber.Ctx) error {
+	err := h.service.HealthCheck(c.Context())
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, "healthy!")
+}
