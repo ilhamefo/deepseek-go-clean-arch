@@ -10,13 +10,15 @@ import (
 
 func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middleware.Middleware) {
 	app.Get("/swagger/*", swagger.New(swagger.Config{
-		DeepLinking:     true,
-		DocExpansion:    "full",
-		WithCredentials: false,
+		DeepLinking:        true,
+		DocExpansion:       "list",
+		WithCredentials:    false,
+		DisplayOperationId: true,
 	}))
 
-	app.Use(m.HTTPTimeoutMiddleware())
+	// app.Use(m.HTTPTimeoutMiddleware())
 
+	app.Get("/health-check", h.HealthCheck)
 	app.Post("/refresh", h.Refresh)
 	app.Post("/activity-types", h.GetActivityTypes)
 	app.Post("/user-profile", h.GetUserProfile)

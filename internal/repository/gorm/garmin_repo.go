@@ -818,3 +818,22 @@ func (r *GarminRepo) UpsertBodyBatteryByDate(ctx context.Context, data []*domain
 
 	return nil
 }
+
+func (r *GarminRepo) HealthCheck(ctx context.Context) (err error) {
+	// Check if database connection is alive
+	sqlDB, err := r.db.DB()
+	if err != nil {
+		r.logger.Error("failed to get underlying sql.DB", zap.Error(err))
+		return err
+	}
+
+	// Ping database with context
+	if err := sqlDB.PingContext(ctx); err != nil {
+		r.logger.Error("database ping failed", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("database health check passed")
+
+	return nil
+}
