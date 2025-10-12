@@ -23,7 +23,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "54321:5432"
     volumes:
       # Additional development scripts
       - ./scripts/dev-data.sql:/docker-entrypoint-initdb.d/03-dev-data.sql:ro

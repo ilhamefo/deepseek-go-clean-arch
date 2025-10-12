@@ -12,6 +12,9 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS builder
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
 
+# Install swag for swagger generation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 # Set working directory
 WORKDIR /src
 
@@ -32,15 +35,11 @@ COPY . .
 # Copy .env files to builder stage for potential copying to runtime
 COPY .env* ./
 
-RUN cat ./.env
-
-# Generate swagger docs (if swag is available, otherwise skip)
-RUN if command -v swag >/dev/null 2>&1; then \
-    swag init -g cmd/server/main.go -o docs; \
-    else \
-    echo "Swagger docs generation skipped - swag not available"; \
-    mkdir -p docs && echo 'package docs' > docs/docs.go; \
-    fi
+# Generate swagger docs
+RUN echo "Generating swagger documentation..." && \
+    swag init -g cmd/server/main.go -o docs --parseInternal --parseDependency --tags Garmin && \
+    echo "Swagger docs generated successfully" && \
+    ls -la docs/
 
 # Build the application
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -91,6 +90,9 @@ WORKDIR /app
 
 # Copy the binary from builder stage
 COPY --from=builder /bin/server /usr/local/bin/server
+
+# Copy swagger documentation
+COPY --from=builder --chown=65532:65532 /src/docs /app/docs
 
 # Copy environment files to runtime (optional, for fallback)
 COPY --from=builder --chown=65532:65532 /src/.env* /app/
