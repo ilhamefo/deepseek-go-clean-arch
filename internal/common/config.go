@@ -21,6 +21,12 @@ type Config struct {
 	PostgresPlnMobileDatabase string        `mapstructure:"POSTGRES_PLN_MOBILE_DATABASE"`
 	PostgresPlnMobileUser     string        `mapstructure:"POSTGRES_PLN_MOBILE_USER"`
 	PostgresPlnMobilePassword string        `mapstructure:"POSTGRES_PLN_MOBILE_PASSWORD"`
+	PostgresDwhURL            string        `mapstructure:"POSTGRES_DWH_URL"`
+	PostgresDwhHost           string        `mapstructure:"POSTGRES_DWH_HOST"`
+	PostgresDwhPort           string        `mapstructure:"POSTGRES_DWH_PORT"`
+	PostgresDwhDatabase       string        `mapstructure:"POSTGRES_DWH_DATABASE"`
+	PostgresDwhUser           string        `mapstructure:"POSTGRES_DWH_USER"`
+	PostgresDwhPassword       string        `mapstructure:"POSTGRES_DWH_PASSWORD"`
 	SshAddress                string        `mapstructure:"SSH_ADDRESS"`
 	SshUsername               string        `mapstructure:"SSH_USERNAME"`
 	SshPassword               string        `mapstructure:"SSH_PASSWORD"`

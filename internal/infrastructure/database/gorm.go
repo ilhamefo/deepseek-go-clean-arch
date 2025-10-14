@@ -71,6 +71,41 @@ func NewGormPlnMobileDB(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, 
 	return db, nil
 }
 
+func NewGormDwhDB(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
+
+	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		cfg.PostgresDwhUser,
+		url.QueryEscape(cfg.PostgresDwhPassword), // Use the encoded password
+		cfg.PostgresDwhHost,
+		cfg.PostgresDwhPort,
+		cfg.PostgresDwhDatabase,
+	)
+
+	db, err := gorm.Open(postgres.Open(connURL), &gorm.Config{
+		SkipDefaultTransaction: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	db.Logger = loggr
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	if !cfg.IsProduction {
+		return db.Debug(), nil
+	}
+
+	return db, nil
+}
+
 func NewGormDBAuth(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error) {
 
 	connURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",

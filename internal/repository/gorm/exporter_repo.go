@@ -9,11 +9,18 @@ import (
 )
 
 type ExporterRepo struct {
-	db *gorm.DB
+	db          *gorm.DB
+	dbPlnMobile *gorm.DB
 }
 
-func NewExporterRepo(db *gorm.DB) domain.ExporterRepository {
-	return &ExporterRepo{db: db}
+func NewExporterRepo(
+	db *gorm.DB, // `name:"DwhDB"`
+	dbPlnMobile *gorm.DB, // `name:"PLNMobileDB"`
+) domain.ExporterRepository {
+	return &ExporterRepo{
+		db:          db,
+		dbPlnMobile: dbPlnMobile,
+	}
 }
 
 func (r *ExporterRepo) GetAllUnit() (result []*domain.Regional, err error) {
@@ -69,7 +76,7 @@ func (r *ExporterRepo) FindTransaksi(req *request.RekapRequest) (result []*domai
 
 func (r *ExporterRepo) FindPelanggan(req *request.RekapRequest) (result []*domain.Pelanggan, err error) {
 
-	query := r.db.Select("id, idpel, name, consumer_name, energy_type, kwh, address, meter_no, meter_type, unit_upi, nama_unit_upi, unit_ap, nama_unit_ap, unit_up, nama_unit_up, created_at")
+	query := r.dbPlnMobile.Select("id, idpel, name, consumer_name, energy_type, kwh, address, meter_no, meter_type, unit_upi, nama_unit_upi, unit_ap, nama_unit_ap, unit_up, nama_unit_up, created_at")
 
 	if len(req.Induk) > 0 {
 		query.Where("unit_upi = ?", req.Induk)
