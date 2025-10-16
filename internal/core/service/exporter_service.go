@@ -90,7 +90,7 @@ func (s *ExporterService) ExportRekapTransaksi(req *request.RekapRequest) (err e
 	} else if len(req.Area) > 0 {
 		filename = "AREA_" + req.Area + "_" + tanggal
 	} else if len(req.UnitCode) > 0 {
-		filename = "UNIT_" + req.Area + "_" + tanggal
+		filename = "UNIT_" + req.UnitCode + "_" + tanggal
 	} else {
 		filename = "NASIONAL" + "_" + tanggal
 	}

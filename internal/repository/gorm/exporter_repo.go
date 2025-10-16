@@ -114,7 +114,7 @@ func (r *ExporterRepo) FindPelanggan(req *request.RekapRequest) (result []*domai
 }
 
 func (r *ExporterRepo) CountPelanggan(req *request.RekapRequest) (result int64, err error) {
-	query := r.db.Model(&domain.Pelanggan{})
+	query := r.dbPlnMobile.Model(&domain.Pelanggan{})
 
 	if len(req.Induk) > 0 {
 		query.Where("unit_upi = ?", req.Induk)
