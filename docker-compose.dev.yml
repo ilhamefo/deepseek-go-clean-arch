@@ -1,0 +1,47 @@
+# Development overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  exporter-service:
+    build:
+      args:
+        VERSION: dev
+    environment:
+      - CONFIG_PATH=../.env.exporter
+      - GO_ENV=development
+    volumes:
+      # Mount source code for live reload (if using air or similar)
+      - ./cmd:/app/cmd:ro
+      - ./internal:/app/internal:ro
+      - ./logs:/app/logs:rw
+      - ./files:/app/files:rw
+    ports:
+      - "5050:5050"
+    restart: "no"
+  user-service:
+    build:
+      args:
+        VERSION: dev
+    environment:
+      - CONFIG_PATH=../.env.exporter
+      - GO_ENV=development
+    volumes:
+      # Mount source code for live reload (if using air or similar)
+      - ./cmd:/app/cmd:ro
+      - ./internal:/app/internal:ro
+      - ./logs:/app/logs:rw
+      - ./files:/app/files:rw
+    ports:
+      - "5051:5051"
+    restart: "no"
+
+  redis:
+    ports:
+      - "6379:6379"
+    networks:
+      - forti-vpn_vpn-network
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
