@@ -5,6 +5,7 @@ import (
 )
 
 type GarminRepository interface {
+	HealthCheck(ctx context.Context) (err error)
 	Update(activities []*Activity) error
 	UpsertHeartRateByDate(ctx context.Context, data *HeartRate) error
 	UpsertUserSettings(data *UserSetting) (err error)
