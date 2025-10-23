@@ -12,6 +12,7 @@ type GarminRepository interface {
 	UpsertHRVByDate(ctx context.Context, data *HRVData) (err error)
 	UpsertActivityTypes(ctx context.Context, data []*ActivityType) (err error)
 	UpsertBodyBatteryByDate(ctx context.Context, data []*StressData) (err error)
+	UpsertSleepByDate(ctx context.Context, data *SleepResponse) (err error)
 }
 
 type ActivityType struct {

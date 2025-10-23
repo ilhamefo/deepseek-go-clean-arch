@@ -15,7 +15,7 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 		WithCredentials: false,
 	}))
 
-	app.Use(m.HTTPTimeoutMiddleware())
+	// app.Use(m.HTTPTimeoutMiddleware())
 
 	app.Post("/refresh", h.Refresh)
 	app.Post("/activity-types", h.GetActivityTypes)
@@ -25,4 +25,5 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 	app.Post("/hrv-by-date", h.HRVByDate)
 	app.Post("/body-battery-by-date", h.GetBodyBatteryByDate)
 	app.Post("/splits/:activityID", h.Splits)
+	app.Post("/sleep-by-date", h.GetSleepByDate)
 }

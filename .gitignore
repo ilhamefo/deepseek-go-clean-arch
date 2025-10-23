@@ -13,3 +13,4 @@ exporter_docs
 /logs
 *.exe
 /responses
+.env*

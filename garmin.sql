@@ -1231,3 +1231,4 @@ ALTER TABLE
   "public"."weather_locations"
 ADD
   CONSTRAINT "weather_locations_user_profile_pk_fkey" FOREIGN KEY ("user_profile_pk") REFERENCES "public"."user_settings" ("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+
