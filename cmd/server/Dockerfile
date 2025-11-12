@@ -67,8 +67,8 @@ ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
 
 # Metadata labels
-LABEL org.opencontainers.image.title="Auth Service Go" \
-    org.opencontainers.image.description="Event Registration Auth Service with Garmin Integration" \
+LABEL org.opencontainers.image.title="Garmin Exporter Go" \
+    org.opencontainers.image.description="Garmin" \
     org.opencontainers.image.source="https://github.com/ilhamefo/deepseek-go-clean-arch" \
     org.opencontainers.image.vendor="ilhamefo" \
     org.opencontainers.image.licenses="MIT" \
