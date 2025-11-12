@@ -24,6 +24,8 @@ ARG TARGETOS TARGETARCH
 # Copy go mod files first for better caching
 COPY go.mod go.sum ./
 
+RUN go mod tidy
+
 # Download dependencies with cache mount
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
