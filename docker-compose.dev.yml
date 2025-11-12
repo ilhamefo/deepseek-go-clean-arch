@@ -35,6 +35,29 @@ services:
       - "5051:5051"
     restart: "no"
 
+  user-service-frontend:
+    build:
+      context: C:\Users\Acer\Documents\nuxt-clean-arch\
+      dockerfile: Dockerfile
+    container_name: user-service-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NUXT_HOST=0.0.0.0
+      - NUXT_PORT=3000
+      - API_BASE=${API_BASE:-http://127.0.0.1:5051}
+      - API_EXPORT_BASE=${API_EXPORT_BASE:-http://127.0.0.1:5050}
+    networks:
+      - forti-vpn_vpn-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   redis:
     ports:
       - "6379:6379"
