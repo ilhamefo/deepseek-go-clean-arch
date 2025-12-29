@@ -68,3 +68,14 @@ services:
       --appendonly yes
       --maxmemory 128mb
       --maxmemory-policy allkeys-lru
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.31.0
+    container_name: meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: 189h20TsEEH9bAtAtbcjge0quJiJxWY4
+    volumes:
+      - meili_data:/meili_data
+    restart: unless-stopped

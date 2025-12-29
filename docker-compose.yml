@@ -143,6 +143,8 @@ services:
 volumes:
   redis_data:
     driver: local
+  meili_data:
+    driver: local
 
 networks:
   forti-vpn_vpn-network:

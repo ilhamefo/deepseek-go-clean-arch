@@ -116,6 +116,7 @@ func (a *Unit) TableName() string {
 type ExporterRepository interface {
 	GetAllUnit() (result []*Regional, err error)
 	FindTransaksi(req *request.RekapRequest) ([]*Transaksi, error)
+	CountTransaksi(req *request.RekapRequest) (result int64, err error)
 	FindPelanggan(req *request.RekapRequest) ([]*Pelanggan, error)
 	CountPelanggan(req *request.RekapRequest) (result int64, err error)
 }

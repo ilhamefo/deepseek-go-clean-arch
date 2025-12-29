@@ -68,43 +68,240 @@ func NewExporterService(repo domain.ExporterRepository, cache domain.EventCache,
 }
 
 func (s *ExporterService) ExportRekapTransaksi(req *request.RekapRequest) (err error) {
+	const MAX_ROWS_PER_FILE = 100000 // 100K rows per file
+	const FETCH_BATCH_SIZE = 10000   // Fetch 10K rows at a time from DB
 
-	var filename string
+	var baseFilename string
 	var tanggal string = strings.ReplaceAll(req.DateStart+"_"+req.DateEnd, "/", "")
 
-	s.logger.Info(
-		"starting_query",
-	)
-
-	res, err := s.repo.FindTransaksi(req)
-	if err != nil {
-		return err
-	}
-
-	s.logger.Info(
-		"done_get_data",
-	)
-
+	// Set filename based on filter
 	if len(req.Induk) > 0 {
-		filename = "INDUK_" + req.Induk + "_" + tanggal
+		baseFilename = "INDUK_" + req.Induk + "_" + tanggal
 	} else if len(req.Area) > 0 {
-		filename = "AREA_" + req.Area + "_" + tanggal
+		baseFilename = "AREA_" + req.Area + "_" + tanggal
 	} else if len(req.UnitCode) > 0 {
-		filename = "UNIT_" + req.UnitCode + "_" + tanggal
+		baseFilename = "UNIT_" + req.UnitCode + "_" + tanggal
 	} else {
-		filename = "NASIONAL" + "_" + tanggal
+		baseFilename = "NASIONAL" + "_" + tanggal
 	}
 
-	files, err := s.generateXlsx(res, filename)
+	s.logger.Info(
+		"starting_count_query",
+		zap.String("filename", baseFilename),
+	)
+
+	// Count total rows first
+	totalRows, err := s.repo.CountTransaksi(req)
 	if err != nil {
 		s.logger.Error(
-			"error_generate_excel",
+			"error_count_transaksi",
 			zap.Error(err),
 		)
 		return err
 	}
 
-	return s.compressFiles(files, filesDir+filename+".tar.gz")
+	s.logger.Info(
+		"total_rows_to_export",
+		zap.Int64("total_rows", totalRows),
+		zap.Int("max_rows_per_file", MAX_ROWS_PER_FILE),
+	)
+
+	if totalRows == 0 {
+		s.logger.Info("no_data_to_export")
+		return nil
+	}
+
+	// Calculate number of files needed
+	totalFiles := (int(totalRows) + MAX_ROWS_PER_FILE - 1) / MAX_ROWS_PER_FILE
+
+	s.logger.Info(
+		"file_calculation",
+		zap.Int("total_files", totalFiles),
+	)
+
+	// Headers for Excel
+	headers := []string{
+		"Nama Pelanggan",
+		"Nama di Meteran",
+		"Jenis Transaksi",
+		"Nominal",
+		"Status",
+		"ID Meteran",
+		"Deskripsi",
+		"Payment Gateway",
+		"Tanggal Transaksi",
+		"Token",
+		"Unit UP",
+		"Nama Unit UP",
+		"Nama Unit AP",
+		"Nama Unit UPI",
+	}
+
+	var generatedFiles []string
+
+	// Process data and create multiple files
+	for fileNum := 0; fileNum < totalFiles; fileNum++ {
+		fileOffset := fileNum * MAX_ROWS_PER_FILE
+		remainingRows := int(totalRows) - fileOffset
+		rowsForThisFile := MAX_ROWS_PER_FILE
+		if remainingRows < MAX_ROWS_PER_FILE {
+			rowsForThisFile = remainingRows
+		}
+
+		s.logger.Info(
+			"creating_file",
+			zap.Int("file_number", fileNum+1),
+			zap.Int("total_files", totalFiles),
+			zap.Int("rows_for_this_file", rowsForThisFile),
+		)
+
+		// Create new Excel file
+		f := excelize.NewFile()
+		sheetName := "Sheet1"
+		sw, err := f.NewStreamWriter(sheetName)
+		if err != nil {
+			f.Close()
+			s.logger.Error("error_create_stream_writer", zap.Error(err))
+			return err
+		}
+
+		// Set headers
+		if err := s.setHeaders(sw, f, headers); err != nil {
+			f.Close()
+			s.logger.Error("error_set_headers", zap.Error(err))
+			return err
+		}
+
+		// Calculate number of fetch batches needed for this file
+		numFetchBatches := (rowsForThisFile + FETCH_BATCH_SIZE - 1) / FETCH_BATCH_SIZE
+		excelRowIndex := 2 // Start from row 2 (row 1 is header)
+
+		// Fetch and write data in batches
+		for fetchBatch := 0; fetchBatch < numFetchBatches; fetchBatch++ {
+			dbOffset := fileOffset + (fetchBatch * FETCH_BATCH_SIZE)
+			dbLimit := FETCH_BATCH_SIZE
+
+			// Adjust limit for last batch
+			remainingForFile := rowsForThisFile - (fetchBatch * FETCH_BATCH_SIZE)
+			if remainingForFile < FETCH_BATCH_SIZE {
+				dbLimit = remainingForFile
+			}
+
+			s.logger.Info(
+				"fetching_batch",
+				zap.Int("file_number", fileNum+1),
+				zap.Int("fetch_batch", fetchBatch+1),
+				zap.Int("num_fetch_batches", numFetchBatches),
+				zap.Int("db_offset", dbOffset),
+				zap.Int("db_limit", dbLimit),
+			)
+
+			batchReq := &request.RekapRequest{
+				UnitCode:  req.UnitCode,
+				Area:      req.Area,
+				Induk:     req.Induk,
+				Pusat:     req.Pusat,
+				DateStart: req.DateStart,
+				DateEnd:   req.DateEnd,
+				Limit:     dbLimit,
+				Offset:    dbOffset,
+			}
+
+			res, err := s.repo.FindTransaksi(batchReq)
+			if err != nil {
+				f.Close()
+				s.logger.Error(
+					"error_fetch_batch",
+					zap.Int("file_number", fileNum+1),
+					zap.Int("fetch_batch", fetchBatch+1),
+					zap.Error(err),
+				)
+				return err
+			}
+
+			s.logger.Info(
+				"batch_fetched",
+				zap.Int("file_number", fileNum+1),
+				zap.Int("fetch_batch", fetchBatch+1),
+				zap.Int("rows_fetched", len(res)),
+			)
+
+			// Write batch data to Excel
+			for _, row := range res {
+				cell, _ := excelize.CoordinatesToCellName(1, excelRowIndex)
+				if err := sw.SetRow(cell, []interface{}{
+					row.Name,
+					row.ConsumerName,
+					row.Type,
+					row.Amount,
+					row.StatusCode,
+					row.MeterID,
+					row.Title,
+					row.PaymentGateway,
+					row.CreatedAt,
+					row.Token,
+					row.UnitUP,
+					row.NameUnitUP,
+					row.NameUnitAP,
+					row.NameUnitUpi,
+				}); err != nil {
+					f.Close()
+					s.logger.Error("error_set_row", zap.Error(err))
+					return err
+				}
+				excelRowIndex++
+			}
+
+			// Free memory
+			res = nil
+			runtime.GC()
+		}
+
+		// Flush and save file
+		if err := sw.Flush(); err != nil {
+			f.Close()
+			s.logger.Error("error_flush_stream", zap.Error(err))
+			return err
+		}
+
+		// Generate filename with part number if multiple files
+		var filePath string
+		if totalFiles > 1 {
+			filePath = fmt.Sprintf("%s%s_PART_%d.xlsx", filesDir, baseFilename, fileNum+1)
+		} else {
+			filePath = fmt.Sprintf("%s%s.xlsx", filesDir, baseFilename)
+		}
+
+		if err := f.SaveAs(filePath); err != nil {
+			f.Close()
+			s.logger.Error(
+				"error_save_excel",
+				zap.String("filepath", filePath),
+				zap.Error(err),
+			)
+			return err
+		}
+
+		f.Close()
+		generatedFiles = append(generatedFiles, filePath)
+
+		s.logger.Info(
+			"file_saved",
+			zap.Int("file_number", fileNum+1),
+			zap.String("filepath", filePath),
+			zap.Int("rows_in_file", excelRowIndex-2),
+		)
+	}
+
+	s.logger.Info(
+		"export_completed",
+		zap.String("base_filename", baseFilename),
+		zap.Int64("total_rows", totalRows),
+		zap.Int("total_files", totalFiles),
+		zap.Strings("generated_files", generatedFiles),
+	)
+
+	return nil
 }
 
 func (s *ExporterService) ExportAllRekapTransaksi(req *request.RekapRequest) (err error) {
