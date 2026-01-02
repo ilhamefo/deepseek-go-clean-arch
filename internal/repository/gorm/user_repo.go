@@ -143,7 +143,22 @@ func (r *UserRepo) Update(user *domain.UserVCC) (err error) {
 		}
 	}
 
-	return handleGormError(tx.Commit().Error)
+	err = tx.Commit().Error
+	if err != nil {
+		return handleGormError(err)
+	}
+
+	err = r.db.Model(&domain.UserVCC{}).
+		Where("id = ?", user.ID).
+		Preload("Roles").
+		First(&user).Error
+
+	if err != nil {
+		r.logger.Error(constant.SQL_ERROR, zap.Error(err))
+		return handleGormError(err)
+	}
+
+	return nil
 }
 
 func (r *UserRepo) FindAll() (user []*domain.UserVCC, err error) {

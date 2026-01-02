@@ -150,7 +150,6 @@ func NewGormDBVCC(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error)
 		cfg.VCCDBPort,
 		cfg.VCCDBDatabase,
 	)
-
 	db, err := gorm.Open(postgres.Open(connURL), &gorm.Config{
 		SkipDefaultTransaction: true,
 	})

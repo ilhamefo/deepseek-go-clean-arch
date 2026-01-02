@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"event-registration/internal/common/helper"
 	"fmt"
 	"time"
 
@@ -83,7 +82,6 @@ func (s *SessionService) GetSession(ctx context.Context, refreshToken string) (*
 
 func (s *SessionService) CheckAccessToken(ctx context.Context, access string) (exist bool, err error) {
 	key := fmt.Sprintf("session:%s", access)
-	helper.PrettyPrint("Checking access token in redis", key, "", "", "", "")
 	_, err = s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {

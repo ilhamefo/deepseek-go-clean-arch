@@ -1,10 +1,7 @@
 package domain
 
 import (
-	"event-registration/internal/common/helper"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type UserRepository interface {
@@ -41,11 +38,6 @@ type UserVCC struct {
 
 func (a *UserVCC) TableName() string {
 	return "dashboard.users"
-}
-
-func (u *UserVCC) AfterUpdate(tx *gorm.DB) error {
-	helper.PrettyPrint("SAMPE SINI BANG =====", u)
-	return nil
 }
 
 type Role struct {

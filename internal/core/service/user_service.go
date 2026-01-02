@@ -130,8 +130,12 @@ func (s *UserService) Update(req *request.UpdateUserRequest) (err error) {
 		ctx := context.Background()
 		index := s.meilisearch.Index("users")
 
-		// AddDocuments with primary key "id" will automatically update existing document
-		taskInfo, err := index.AddDocumentsWithContext(ctx, []interface{}{user}, &meilisearch.DocumentOptions{PrimaryKey: "id"})
+		primaryKey := "id"
+		taskInfo, err := index.AddDocumentsWithContext(
+			ctx,
+			[]interface{}{user},
+			&meilisearch.DocumentOptions{PrimaryKey: &primaryKey},
+		)
 		if err != nil {
 			s.logger.Error("error_updating_meilisearch_index",
 				zap.String("user_id", user.ID),
