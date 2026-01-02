@@ -17,6 +17,7 @@ func RegisterUserRoutes(app *fiber.App, userHandler *handler.UserHandler, m *mid
 
 	app.Get("/roles", userHandler.Roles)
 	app.Get("/search-user", userHandler.Search)
+	app.Get("/meili-health", userHandler.CheckHealthMeilisearch)
 	app.Get("/units", userHandler.GetUnits)
 	app.Post("/update/:id", userHandler.Update)
 }

@@ -128,3 +128,19 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 
 	return h.handler.ResponseSuccess(c, true)
 }
+
+// Check Health godoc
+// @Summary Check Health
+// @Description This endpoint is used to check the health of Meilisearch.
+// @Tags Users
+// @Accept  json
+// @Produce  json
+// @Router /meili-health [get]
+func (h *UserHandler) CheckHealthMeilisearch(c *fiber.Ctx) error {
+	err := h.service.CheckHealthMeilisearch()
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, nil)
+}

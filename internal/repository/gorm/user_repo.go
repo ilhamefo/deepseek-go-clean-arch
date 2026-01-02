@@ -87,7 +87,6 @@ func (r *UserRepo) Unit(level string) (units []*domain.UnitName, err error) {
 	return units, nil
 }
 
-// Update user record
 func (r *UserRepo) Update(user *domain.UserVCC) (err error) {
 	var updatableColumn []string = []string{
 		"Email",
@@ -145,4 +144,18 @@ func (r *UserRepo) Update(user *domain.UserVCC) (err error) {
 	}
 
 	return handleGormError(tx.Commit().Error)
+}
+
+func (r *UserRepo) FindAll() (user []*domain.UserVCC, err error) {
+
+	err = r.db.Model(&domain.UserVCC{}).
+		Preload("Roles").
+		Find(&user).Error
+
+	if err != nil {
+		r.logger.Error(constant.SQL_ERROR, zap.Error(err))
+		return user, handleGormError(err)
+	}
+
+	return user, nil
 }

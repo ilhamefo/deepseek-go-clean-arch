@@ -55,6 +55,8 @@ type Config struct {
 	VCCDBUser                 string        `mapstructure:"POSTGRES_VCC_USER"`
 	VCCDBPassword             string        `mapstructure:"POSTGRES_VCC_PASSWORD"`
 	VCCDBSchema               string        `mapstructure:"POSTGRES_VCC_SCHEMA"`
+	MeilisearchHost           string        `mapstructure:"MEILISEARCH_HOST"`
+	MeilisearchAPIKey         string        `mapstructure:"MEILISEARCH_API_KEY"`
 }
 
 func Load() (*Config, error) {

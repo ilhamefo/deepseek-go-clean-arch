@@ -24,6 +24,7 @@ ARG TARGETOS TARGETARCH
 # Copy go mod files first for better caching
 COPY go.mod go.sum ./
 
+
 # Download dependencies with cache mount
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -40,6 +41,8 @@ RUN echo "Generating swagger documentation..." && \
     swag init -g cmd/server/main.go -o docs --parseInternal --parseDependency --tags Garmin && \
     echo "Swagger docs generated successfully" && \
     ls -la docs/
+
+RUN go mod tidy
 
 # Build the application
 RUN --mount=type=cache,target=/go/pkg/mod \
