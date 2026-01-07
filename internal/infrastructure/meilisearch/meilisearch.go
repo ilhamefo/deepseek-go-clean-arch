@@ -1,4 +1,4 @@
-package config
+package meili
 
 import (
 	"event-registration/internal/common"

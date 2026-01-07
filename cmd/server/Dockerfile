@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build arguments
-ARG GO_VERSION=1.23
+ARG GO_VERSION=1.25.5
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 ARG SERVICE_NAME=auth-service

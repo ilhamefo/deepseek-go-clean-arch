@@ -7,9 +7,11 @@ import (
 	"event-registration/internal/core/service"
 	"event-registration/internal/handler"
 	"event-registration/internal/infrastructure/database"
+	meili "event-registration/internal/infrastructure/meilisearch"
 	"event-registration/internal/infrastructure/validator"
 	"event-registration/internal/middleware"
 	"event-registration/internal/repository/gorm"
+	"event-registration/internal/repository/meilisearch"
 	"event-registration/internal/route"
 
 	_ "event-registration/docs"
@@ -40,7 +42,7 @@ func main() {
 			config.NewSentryOptions,
 			config.NewZapGormLogger,
 			config.NewRedisConfig,
-			config.NewMeilisearchClient,
+			meili.NewMeilisearchClient,
 			config.NewRedisCache,
 			service.NewSessionService,
 			middleware.NewMiddleware,
@@ -51,6 +53,7 @@ func main() {
 			fx.Annotate(database.NewGormDBVCC, fx.ResultTags(`name:"VCCDB"`)),
 			fx.Annotate(gorm.NewAuthRepo, fx.ParamTags(`name:"authDB"`)),
 			fx.Annotate(gorm.NewUserRepo, fx.ParamTags(`name:"VCCDB"`)),
+			meilisearch.NewUserMeilisearchRepo,
 			service.NewUserService,
 			handler.NewUserHandler,
 			service.NewAuthService,

@@ -13,9 +13,9 @@ import (
 )
 
 type UserService struct {
-	repo        domain.UserRepository
-	meilisearch meilisearch.ServiceManager
-	logger      *zap.Logger
+	repo      domain.UserRepository
+	logger    *zap.Logger
+	meilirepo domain.UserMeilisearchRepository
 }
 
 func NewUserService(
@@ -25,37 +25,20 @@ func NewUserService(
 	config *common.Config,
 	sessionService *SessionService,
 	meilisearch meilisearch.ServiceManager,
+	meilirepo domain.UserMeilisearchRepository,
 ) *UserService {
 	return &UserService{
-		repo:        repo,
-		logger:      logger,
-		meilisearch: meilisearch,
+		repo:      repo,
+		logger:    logger,
+		meilirepo: meilirepo,
 	}
 }
 
 func (s *UserService) Search(ctx context.Context, keyword string) (users []*domain.UserVCC, err error) {
-	index := s.meilisearch.Index("users")
-
-	searchRes, err := index.SearchWithContext(ctx, keyword, &meilisearch.SearchRequest{
-		Limit: 10,
-	})
+	users, err = s.meilirepo.Search(ctx, keyword)
 	if err != nil {
 		s.logger.Error("error_search_users_meilisearch", zap.Error(err))
 		return nil, err
-	}
-
-	users = make([]*domain.UserVCC, 0, len(searchRes.Hits))
-
-	for _, hit := range searchRes.Hits {
-		user := &domain.UserVCC{}
-		if err := hit.DecodeInto(user); err != nil {
-			s.logger.Error("error_decode_user",
-				zap.Error(err),
-				zap.Any("hit", hit))
-			continue
-		}
-
-		users = append(users, user)
 	}
 
 	return users, nil
@@ -127,42 +110,20 @@ func (s *UserService) Update(req *request.UpdateUserRequest) (err error) {
 	}
 
 	go func() {
-		ctx := context.Background()
-		index := s.meilisearch.Index("users")
-
-		primaryKey := "id"
-		taskInfo, err := index.AddDocumentsWithContext(
-			ctx,
-			[]interface{}{user},
-			&meilisearch.DocumentOptions{PrimaryKey: &primaryKey},
-		)
-		if err != nil {
-			s.logger.Error("error_updating_meilisearch_index",
-				zap.String("user_id", user.ID),
-				zap.Error(err))
-			return
-		}
-
-		s.logger.Info("meilisearch_index_updated",
-			zap.String("user_id", user.ID),
-			zap.Int64("task_uid", taskInfo.TaskUID))
+		s.meilirepo.Update(user)
 	}()
 
 	return nil
 }
 
 func (s *UserService) CheckHealthMeilisearch() error {
-	if _, err := s.meilisearch.Health(); err != nil {
+	if err := s.meilirepo.CheckHealth(); err != nil {
 		s.logger.Error(
 			"failed_to_connect_to_meilisearch",
 			zap.Error(err),
 		)
 
 		return err
-	} else {
-		s.logger.Info(
-			"meilisearch_connected",
-		)
 	}
 
 	err := s.SetupIndexUsers()
@@ -190,105 +151,31 @@ func (s *UserService) CheckHealthMeilisearch() error {
 
 func (s *UserService) SetupIndexUsers() error {
 
-	index := s.meilisearch.Index("users")
+	s.logger.Info("setting_up_meilisearch_index_users")
 
-	taskInfo, err := index.UpdateSearchableAttributes(&[]string{
-		"email",
-		"username",
-		"full_name",
-		"jabatan",
-		"nip",
-		"unit_code",
-		"unit_name",
-	})
+	err := s.meilirepo.SetupIndex()
 	if err != nil {
 		s.logger.Error(
-			"error_updating_meilisearch_searchable_attributes",
+			"error_setting_up_meilisearch_index_users",
 			zap.Error(err),
 		)
 
 		return err
 	}
-
-	s.logger.Info(
-		"task_info",
-		zap.Any("task_info", taskInfo),
-	)
-
-	taskInfo, err = index.UpdateFilterableAttributes(&[]interface{}{"email",
-		"username",
-		"full_name",
-		"jabatan",
-		"nip",
-		"unit_code",
-		"unit_name"})
-	if err != nil {
-		s.logger.Error(
-			"error_updating_meilisearch_filterable_attributes",
-			zap.Error(err),
-		)
-
-		return err
-	}
-
-	s.logger.Info(
-		"task_info",
-		zap.Any("task_info", taskInfo),
-	)
-
-	taskInfo, err = index.UpdateSortableAttributes(&[]string{
-		"email",
-		"username",
-		"full_name",
-		"jabatan",
-		"nip",
-		"unit_code",
-		"unit_name",
-	})
-	if err != nil {
-		s.logger.Error(
-			"error_updating_meilisearch_sortable_attributes",
-			zap.Error(err),
-		)
-
-		return err
-	}
-
-	s.logger.Info(
-		"task_info",
-		zap.Any("task_info", taskInfo),
-	)
 
 	return nil
 }
 
 func (s *UserService) SeedIndex() error {
-	index := s.meilisearch.Index("users")
-
-	users, err := s.repo.FindAll()
+	err := s.meilirepo.SeedIndex()
 	if err != nil {
 		s.logger.Error(
-			"failed_to_connect_to_meilisearch",
+			"error_setting_up_meilisearch_index_users",
 			zap.Error(err),
 		)
 
 		return err
 	}
-
-	taskInfo, err := index.AddDocuments(users, nil)
-	if err != nil {
-		s.logger.Error(
-			"failed_to_connect_to_meilisearch",
-			zap.Error(err),
-		)
-
-		return err
-	}
-
-	s.logger.Info(
-		"task_info",
-		zap.Any("task_info", taskInfo),
-	)
 
 	return nil
 }
