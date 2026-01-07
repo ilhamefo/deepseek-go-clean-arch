@@ -121,7 +121,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		return h.handler.ResponseValidationError(c, constant.VALIDATION_ERROR, h.handler.Validator.ValidationErrors(err))
 	}
 
-	err := h.service.Update(request)
+	err := h.service.Update(c.Context(), request)
 	if err != nil {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}

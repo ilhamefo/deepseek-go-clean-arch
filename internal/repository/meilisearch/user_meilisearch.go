@@ -182,9 +182,8 @@ func (r *UserMeilisearchRepo) CheckHealth() error {
 	return nil
 }
 
-func (r *UserMeilisearchRepo) Update(user *domain.UserVCC) {
-	ctx := context.Background()
-	index := r.meilisearch.Index("users")
+func (r *UserMeilisearchRepo) Update(ctx context.Context, user *domain.UserVCC) error {
+	index := r.meilisearch.Index(USER_INDEX)
 
 	primaryKey := "id"
 	taskInfo, err := index.AddDocumentsWithContext(
@@ -196,10 +195,12 @@ func (r *UserMeilisearchRepo) Update(user *domain.UserVCC) {
 		r.logger.Error("error_updating_meilisearch_index",
 			zap.String("user_id", user.ID),
 			zap.Error(err))
-		return
+		return err
 	}
 
 	r.logger.Info("meilisearch_index_updated",
 		zap.String("user_id", user.ID),
 		zap.Int64("task_uid", taskInfo.TaskUID))
+
+	return nil
 }

@@ -72,7 +72,7 @@ func (s *UserService) GetUnits(level string) (units []*domain.UnitName, err erro
 	return units, nil
 }
 
-func (s *UserService) Update(req *request.UpdateUserRequest) (err error) {
+func (s *UserService) Update(ctx context.Context, req *request.UpdateUserRequest) (err error) {
 	level, err := strconv.Atoi(req.Level)
 	if err != nil {
 		s.logger.Error("error_convert_to_int", zap.Error(err))
@@ -110,7 +110,7 @@ func (s *UserService) Update(req *request.UpdateUserRequest) (err error) {
 	}
 
 	go func() {
-		s.meilirepo.Update(user)
+		s.meilirepo.Update(ctx, user)
 	}()
 
 	return nil
