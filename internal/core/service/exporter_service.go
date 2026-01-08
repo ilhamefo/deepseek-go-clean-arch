@@ -68,8 +68,8 @@ func NewExporterService(repo domain.ExporterRepository, cache domain.EventCache,
 }
 
 func (s *ExporterService) ExportRekapTransaksi(req *request.RekapRequest) (err error) {
-	const MAX_ROWS_PER_FILE = 100000 // 100K rows per file
-	const FETCH_BATCH_SIZE = 10000   // Fetch 10K rows at a time from DB
+	const MAX_ROWS_PER_FILE = 100000
+	const FETCH_BATCH_SIZE = 100000
 
 	var baseFilename string
 	var tanggal string = strings.ReplaceAll(req.DateStart+"_"+req.DateEnd, "/", "")

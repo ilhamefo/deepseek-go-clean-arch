@@ -11,3 +11,4 @@ main.exe
 .vscode
 exporter_docs
 logs
+*.exe
