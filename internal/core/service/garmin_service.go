@@ -11,14 +11,12 @@ import (
 	"net/http"
 	"time"
 
-	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 const (
 	DAYS_TO_FETCH = 60
-	timeout       = 30
 )
 
 type GarminService struct {
@@ -29,11 +27,7 @@ type GarminService struct {
 	redisClient *redis.Client
 }
 
-func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config, redisClient *redis.Client) *GarminService {
-	httpClient := httptrace.WrapClient(&http.Client{
-		Timeout: timeout * time.Second,
-	}, httptrace.WithService("http-client"))
-
+func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config, redisClient *redis.Client, httpClient *http.Client) *GarminService {
 	return &GarminService{
 		repo:        repo,
 		logger:      logger,
