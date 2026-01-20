@@ -5,7 +5,9 @@ import (
 	"event-registration/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/swagger"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middleware.Middleware) {
@@ -17,6 +19,9 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 	}))
 
 	// app.Use(m.HTTPTimeoutMiddleware())
+
+	// metrics endpoint
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	app.Get("/health-check", h.HealthCheck)
 	app.Post("/refresh", h.Refresh)
