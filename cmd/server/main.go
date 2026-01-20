@@ -12,7 +12,7 @@ import (
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/route"
 
-	_ "event-registration/docs"
+	_ "event-registration/cmd/server/docs"
 
 	fibertrace "github.com/DataDog/dd-trace-go/contrib/gofiber/fiber.v2/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
@@ -49,6 +49,7 @@ func main() {
 			middleware.NewMiddleware,
 			validator.NewValidator,
 			common.NewHandler,
+			config.NewHTTPClient,
 
 			// handlers, repositories, services, and routes
 			fx.Annotate(database.NewGarminGormDB, fx.ResultTags(`name:"GarminDB"`)),
@@ -63,12 +64,12 @@ func main() {
 			app.Use(m.SentryMiddleware(sentryOpts))
 			// app.Use(m.NewZapLoggerMiddleware(logger))
 
-			tracer.Start(
-				tracer.WithService(cfg.DDService),
-				tracer.WithEnv(cfg.DDENV),
-				tracer.WithServiceVersion(cfg.DDVersion),
-				tracer.WithAgentAddr("localhost:8126"), // jika perlu override
-			)
+			// tracer.Start(
+			// 	tracer.WithService(cfg.DDService),
+			// 	tracer.WithEnv(cfg.DDENV),
+			// 	tracer.WithServiceVersion(cfg.DDVersion),
+			// 	tracer.WithAgentAddr("localhost:8126"), // jika perlu override
+			// )
 
 			app.Use(fibertrace.Middleware(
 				fibertrace.WithService(cfg.DDService),

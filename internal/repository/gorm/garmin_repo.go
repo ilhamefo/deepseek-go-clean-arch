@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"context"
+	"event-registration/internal/common/helper"
 	"event-registration/internal/core/domain"
 	"fmt"
 
@@ -834,6 +835,52 @@ func (r *GarminRepo) HealthCheck(ctx context.Context) (err error) {
 	}
 
 	r.logger.Debug("database health check passed")
+
+	return nil
+}
+
+func (r *GarminRepo) UpsertSleepByDate(ctx context.Context, data *domain.SleepResponse) (err error) {
+
+	if data == nil {
+		r.logger.Info("no sleep data to upsert")
+		return nil
+	}
+
+	tx := r.db.Debug().WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	helper.PrettyPrint(data.DailySleepDTO)
+
+	err = tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "user_profile_pk"},
+				{Name: "calendar_date"},
+			},
+			UpdateAll: true,
+		}).
+		Create(&data.DailySleepDTO).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed upsert daily sleep", zap.Error(err))
+		return err
+	}
+
+	// exec end here
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
 
 	return nil
 }

@@ -11,14 +11,12 @@ import (
 	"net/http"
 	"time"
 
-	httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 const (
 	DAYS_TO_FETCH = 60
-	timeout       = 30
 )
 
 type GarminService struct {
@@ -29,11 +27,7 @@ type GarminService struct {
 	redisClient *redis.Client
 }
 
-func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config, redisClient *redis.Client) *GarminService {
-	httpClient := httptrace.WrapClient(&http.Client{
-		Timeout: timeout * time.Second,
-	}, httptrace.WithService("http-client"))
-
+func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *common.Config, redisClient *redis.Client, httpClient *http.Client) *GarminService {
 	return &GarminService{
 		repo:        repo,
 		logger:      logger,
@@ -163,6 +157,23 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicReque
 		s.logger.Info("heart_rate_data_fetched", zap.String("date", date))
 	}
 
+	// fetch Step Data for the past 60 days
+	for i := 0; i < 60; i++ {
+		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+
+		hrRequest := &request.GarminByDateRequest{
+			GarminBasicRequest: *r,
+			Date:               date,
+		}
+		err = s.StepByDate(ctx, hrRequest)
+		if err != nil {
+			s.logger.Error("error_fetch_step_data", zap.Error(err), zap.String("date", date))
+			continue
+		}
+		s.logger.Info("step_data_fetched", zap.String("date", date))
+	}
+
+	// fetch Step Data for the past 60 days
 	for i := 0; i < 60; i++ {
 		date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
@@ -835,4 +846,58 @@ func (s *GarminService) GetBodyBatteryByDate(ctx context.Context, r *request.Gar
 	}
 
 	return nil
+}
+
+func (s *GarminService) SleepByDate(ctx context.Context, r *request.GarminByDateRequest) (err error) {
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/sleep-service/sleep/dailySleepData?date=%s&nonSleepBufferMinutes=60", r.Date)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return err
+	}
+
+	// Header
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return err
+	}
+
+	var sleepData *domain.SleepResponse
+	err = json.Unmarshal(body, &sleepData)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
+		return err
+	}
+
+	err = s.repo.UpsertSleepByDate(ctx, sleepData)
+	if err != nil {
+		s.logger.Error("error_upsert_sleep_data", zap.Error(err))
+		return err
+	}
+
+	return err
 }
