@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build arguments
-ARG GO_VERSION=1.23
+ARG GO_VERSION=1.25
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 ARG SERVICE_NAME=auth-service
@@ -33,9 +33,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # Copy source code
 COPY . .
-
-# Copy .env files to builder stage for potential copying to runtime
-COPY .env* ./
 
 # Generate swagger docs
 RUN echo "Generating swagger documentation..." && \

@@ -1,0 +1,17 @@
+{
+  "dashboard": {
+    "title": "Event Registration Metrics",
+    "uid": "event-reg-metrics",
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Client Request Duration (p95)",
+        "targets": [{
+          "expr": "histogram_quantile(0.95, sum(rate(garmin_exporter_http_client_request_duration_seconds_bucket[5m])) by (le, method))",
+          "refId": "A"
+        }],
+        "type": "timeseries"
+      }
+    ]
+  }
+}
