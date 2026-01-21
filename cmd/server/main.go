@@ -16,7 +16,6 @@ import (
 
 	fibertrace "github.com/DataDog/dd-trace-go/contrib/gofiber/fiber.v2/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
-	"github.com/getsentry/sentry-go"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -41,7 +40,7 @@ func main() {
 			common.Load, // config.Load should be the first to ensure config is available for other components
 			config.NewLogLevel,
 			config.NewZapLogger,
-			config.NewSentryOptions,
+			// config.NewSentryOptions,
 			config.NewZapGormLogger,
 			config.NewRedisConfig,
 			config.NewRedisCache,
@@ -59,9 +58,9 @@ func main() {
 			config.NewFiberApp,
 		),
 
-		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *common.Config, logger *zap.Logger, m *middleware.Middleware, sentryOpts sentry.ClientOptions) {
+		fx.Invoke(func(lc fx.Lifecycle, app *fiber.App, cfg *common.Config, logger *zap.Logger, m *middleware.Middleware) {
 
-			app.Use(m.SentryMiddleware(sentryOpts))
+			// app.Use(m.SentryMiddleware(sentryOpts))
 			// app.Use(m.NewZapLoggerMiddleware(logger))
 
 			// tracer.Start(
