@@ -1,0 +1,58 @@
+# Datadog Agent configuration
+api_key: ${DD_API_KEY}
+site: ${DD_SITE}
+hostname: auth-service-host
+
+# Logging
+logs_enabled: true
+log_level: INFO
+
+# APM
+apm_config:
+  enabled: true
+  env: ${DD_ENV}
+  receiver_port: 8126
+
+# DogStatsD
+dogstatsd_config:
+  port: 8125
+  non_local_traffic: true
+
+# Process monitoring
+process_config:
+  enabled: true
+
+# Container monitoring
+docker_config:
+  collect_events: true
+  collect_container_count: true
+  collect_volume_count: true
+  collect_images_stats: false
+
+# Custom integrations
+integrations:
+  postgres:
+    instances:
+      - host: postgres
+        port: 5432
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        dbname: ${POSTGRES_DB}
+        tags:
+          - env:${DD_ENV}
+          - service:${DD_SERVICE}
+
+  redis:
+    instances:
+      - host: redis
+        port: 6379
+        tags:
+          - env:${DD_ENV}
+          - service:${DD_SERVICE}
+
+# Tags
+tags:
+  - env:${DD_ENV}
+  - service:${DD_SERVICE}
+  - version:${DD_VERSION}
+  - team:backend

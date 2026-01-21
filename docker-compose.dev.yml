@@ -1,0 +1,44 @@
+# Development overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  garmin-service:
+    build:
+      args:
+        VERSION: dev
+    environment:
+      - CONFIG_PATH=../.env.dev
+      - GO_ENV=development
+    volumes:
+      - ./cmd:/app/cmd:ro
+      - ./internal:/app/internal:ro
+      - ./logs:/app/logs:rw
+    ports:
+      - "5051:5051"
+    env_file:
+      - .env.dev
+    restart: "no"
+
+  postgres:
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "54321:5432"
+    volumes:
+      # Additional development scripts
+      - ./scripts/dev-data.sql:/docker-entrypoint-initdb.d/03-dev-data.sql:ro
+      - ./logs/postgresql:/var/log/postgresql:rw
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_destination=stderr
+      -c logging_collector=on
+      -c log_directory=/var/log/postgresql
+      -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
+      -c log_rotation_age=1d
+      -c log_rotation_size=100MB
+      -c log_min_duration_statement=0
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_duration=on

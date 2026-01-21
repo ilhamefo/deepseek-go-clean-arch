@@ -10,7 +10,7 @@ bash.exe.stackdump
 main.exe
 .vscode
 exporter_docs
-/logs
+/logs/*.log
 *.exe
 /responses
 .env*
