@@ -1,167 +1,96 @@
 package common
 
 import (
-	"os"
-	"strconv"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
-	PostgresURL               string
-	RedisURL                  string
-	RabbitMQURL               string
-	CacheTimeout              time.Duration
-	ServerAddress             string
-	ServerPort                string
-	ServerExporterAddress     string
-	ServerExporterPort        string
-	PostgresPlnMobileURL      string
-	PostgresPlnMobileHost     string
-	PostgresPlnMobilePort     string
-	PostgresPlnMobileDatabase string
-	PostgresPlnMobileUser     string
-	PostgresPlnMobilePassword string
-	SshAddress                string
-	SshUsername               string
-	SshPassword               string
-	IsProduction              bool
-	GoogleClientSecret        string
-	GoogleClientID            string
-	GoogleRedirectUri         string
-	GoogleOAuthScope          string
-	AuthDB                    string
-	AuthDBSchema              string
-	AuthDBHost                string
-	AuthDBPort                string
-	AuthDBUser                string
-	AuthDBPassword            string
-	GarminDB                  string
-	GarminDBSchema            string
-	GarminDBHost              string
-	GarminDBPort              string
-	GarminDBUser              string
-	GarminDBPassword          string
-	GarminToken               string
-	GarminRefreshToken        string
-	RedisHost                 string
-	RedisPort                 int
-	RedisPassword             string
-	RedisDB                   int
-	JwtSecret                 string
-	RefreshTokenExpiration    int
-	AccessJwtExpiration       int
-	SentryDSN                 string
-	VCCDBHost                 string
-	VCCDBPort                 string
-	VCCDBDatabase             string
-	VCCDBUser                 string
-	VCCDBPassword             string
-	VCCDBSchema               string
-	DDService                 string
-	DDApiKey                  string
-	DDSite                    string
-	DDENV                     string
-	DDVersion                 string
-	DDAentHost                string
-	DDTraceAgentPort          string
-	Timeout                   int
-}
-
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
-}
-
-func getEnvInt(key string, fallback int) int {
-	if value := os.Getenv(key); value != "" {
-		if intVal, err := strconv.Atoi(value); err == nil {
-			return intVal
-		}
-	}
-	return fallback
-}
-
-func getEnvBool(key string, fallback bool) bool {
-	if value := os.Getenv(key); value != "" {
-		if boolVal, err := strconv.ParseBool(value); err == nil {
-			return boolVal
-		}
-	}
-	return fallback
-}
-
-func getEnvDuration(key string, fallback time.Duration) time.Duration {
-	if value := os.Getenv(key); value != "" {
-		if duration, err := time.ParseDuration(value); err == nil {
-			return duration
-		}
-	}
-	return fallback
+	PostgresURL               string        `mapstructure:"POSTGRES_URL"`
+	RedisURL                  string        `mapstructure:"REDIS_URL"`
+	RabbitMQURL               string        `mapstructure:"RABBITMQ_URL"`
+	CacheTimeout              time.Duration `mapstructure:"CACHE_TIMEOUT"`
+	ServerAddress             string        `mapstructure:"SERVER_ADDRESS"`
+	ServerPort                string        `mapstructure:"SERVER_PORT"`
+	ServerExporterAddress     string        `mapstructure:"SERVER_EXPORTER_ADDRESS"`
+	ServerExporterPort        string        `mapstructure:"SERVER_EXPORTER_PORT"`
+	PostgresPlnMobileURL      string        `mapstructure:"POSTGRES_PLN_MOBILE_URL"`
+	PostgresPlnMobileHost     string        `mapstructure:"POSTGRES_PLN_MOBILE_HOST"`
+	PostgresPlnMobilePort     string        `mapstructure:"POSTGRES_PLN_MOBILE_PORT"`
+	PostgresPlnMobileDatabase string        `mapstructure:"POSTGRES_PLN_MOBILE_DATABASE"`
+	PostgresPlnMobileUser     string        `mapstructure:"POSTGRES_PLN_MOBILE_USER"`
+	PostgresPlnMobilePassword string        `mapstructure:"POSTGRES_PLN_MOBILE_PASSWORD"`
+	SshAddress                string        `mapstructure:"SSH_ADDRESS"`
+	SshUsername               string        `mapstructure:"SSH_USERNAME"`
+	SshPassword               string        `mapstructure:"SSH_PASSWORD"`
+	IsProduction              bool          `mapstructure:"IS_PRODUCTION"`
+	GoogleClientSecret        string        `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	GoogleClientID            string        `mapstructure:"GOOGLE_CLIENT_ID"`
+	GoogleRedirectUri         string        `mapstructure:"GOOGLE_REDIRECT_URI"`
+	GoogleOAuthScope          string        `mapstructure:"GOOGLE_OAUTH_SCOPE"`
+	AuthDB                    string        `mapstructure:"AUTH_DB"`
+	AuthDBSchema              string        `mapstructure:"AUTH_DB_SCHEMA"`
+	AuthDBHost                string        `mapstructure:"AUTH_DB_HOST"`
+	AuthDBPort                string        `mapstructure:"AUTH_DB_PORT"`
+	AuthDBUser                string        `mapstructure:"AUTH_DB_USER"`
+	AuthDBPassword            string        `mapstructure:"AUTH_DB_PASSWORD"`
+	GarminDB                  string        `mapstructure:"GARMIN_DB"`
+	GarminDBSchema            string        `mapstructure:"GARMIN_DB_SCHEMA"`
+	GarminDBHost              string        `mapstructure:"GARMIN_DB_HOST"`
+	GarminDBPort              string        `mapstructure:"GARMIN_DB_PORT"`
+	GarminDBUser              string        `mapstructure:"GARMIN_DB_USER"`
+	GarminDBPassword          string        `mapstructure:"GARMIN_DB_PASSWORD"`
+	GarminToken               string        `mapstructure:"GARMIN_TOKEN"`
+	GarminRefreshToken        string        `mapstructure:"GARMIN_REFRESH_TOKEN"`
+	RedisHost                 string        `mapstructure:"REDIS_HOST"`
+	RedisPort                 int           `mapstructure:"REDIS_PORT"`
+	RedisPassword             string        `mapstructure:"REDIS_PASSWORD"`
+	RedisDB                   int           `mapstructure:"REDIS_DB"`
+	JwtSecret                 string        `mapstructure:"JWT_SECRET"`
+	RefreshTokenExpiration    int           `mapstructure:"REFRESH_JWT_EXPIRATION"`
+	AccessJwtExpiration       int           `mapstructure:"ACCESS_JWT_EXPIRATION"`
+	SentryDSN                 string        `mapstructure:"SENTRY_DSN"`
+	VCCDBHost                 string        `mapstructure:"POSTGRES_VCC_HOST"`
+	VCCDBPort                 string        `mapstructure:"POSTGRES_VCC_PORT"`
+	VCCDBDatabase             string        `mapstructure:"POSTGRES_VCC_DATABASE"`
+	VCCDBUser                 string        `mapstructure:"POSTGRES_VCC_USER"`
+	VCCDBPassword             string        `mapstructure:"POSTGRES_VCC_PASSWORD"`
+	VCCDBSchema               string        `mapstructure:"POSTGRES_VCC_SCHEMA"`
+	DDService                 string        `mapstructure:"DD_SERVICE"`
+	DDApiKey                  string        `mapstructure:"DD_API_KEY"`
+	DDSite                    string        `mapstructure:"DD_SITE"`
+	DDENV                     string        `mapstructure:"DD_ENV"`
+	DDVersion                 string        `mapstructure:"DD_VERSION"`
+	DDAentHost                string        `mapstructure:"DD_AGENT_HOST"`
+	DDTraceAgentPort          string        `mapstructure:"DD_TRACE_AGENT_PORT"`
+	Timeout                   int           `mapstructure:"TIMEOUT"` // http client timeout in seconds
 }
 
 func Load() (*Config, error) {
-	cfg := &Config{
-		PostgresURL:               getEnv("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/vcc?sslmode=disable"),
-		RedisURL:                  getEnv("REDIS_URL", "redis:6379"),
-		RabbitMQURL:               getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
-		CacheTimeout:              getEnvDuration("CACHE_TIMEOUT", 5*time.Minute),
-		ServerAddress:             getEnv("SERVER_ADDRESS", ""),
-		ServerPort:                getEnv("SERVER_PORT", "5051"),
-		ServerExporterAddress:     getEnv("SERVER_EXPORTER_ADDRESS", ""),
-		ServerExporterPort:        getEnv("SERVER_EXPORTER_PORT", "9091"),
-		PostgresPlnMobileURL:      getEnv("POSTGRES_PLN_MOBILE_URL", ""),
-		PostgresPlnMobileHost:     getEnv("POSTGRES_PLN_MOBILE_HOST", ""),
-		PostgresPlnMobilePort:     getEnv("POSTGRES_PLN_MOBILE_PORT", ""),
-		PostgresPlnMobileDatabase: getEnv("POSTGRES_PLN_MOBILE_DATABASE", ""),
-		PostgresPlnMobileUser:     getEnv("POSTGRES_PLN_MOBILE_USER", ""),
-		PostgresPlnMobilePassword: getEnv("POSTGRES_PLN_MOBILE_PASSWORD", ""),
-		SshAddress:                getEnv("SSH_ADDRESS", ""),
-		SshUsername:               getEnv("SSH_USERNAME", ""),
-		SshPassword:               getEnv("SSH_PASSWORD", ""),
-		IsProduction:              getEnvBool("IS_PRODUCTION", false),
-		GoogleClientSecret:        getEnv("GOOGLE_CLIENT_SECRET", ""),
-		GoogleClientID:            getEnv("GOOGLE_CLIENT_ID", ""),
-		GoogleRedirectUri:         getEnv("GOOGLE_REDIRECT_URI", ""),
-		GoogleOAuthScope:          getEnv("GOOGLE_OAUTH_SCOPE", ""),
-		AuthDB:                    getEnv("AUTH_DB", ""),
-		AuthDBSchema:              getEnv("AUTH_DB_SCHEMA", ""),
-		AuthDBHost:                getEnv("AUTH_DB_HOST", ""),
-		AuthDBPort:                getEnv("AUTH_DB_PORT", ""),
-		AuthDBUser:                getEnv("AUTH_DB_USER", ""),
-		AuthDBPassword:            getEnv("AUTH_DB_PASSWORD", ""),
-		GarminDB:                  getEnv("GARMIN_DB", ""),
-		GarminDBSchema:            getEnv("GARMIN_DB_SCHEMA", ""),
-		GarminDBHost:              getEnv("GARMIN_DB_HOST", "postgres"),
-		GarminDBPort:              getEnv("GARMIN_DB_PORT", "5432"),
-		GarminDBUser:              getEnv("GARMIN_DB_USER", "postgres"),
-		GarminDBPassword:          getEnv("GARMIN_DB_PASSWORD", "postgres"),
-		GarminToken:               getEnv("GARMIN_TOKEN", ""),
-		GarminRefreshToken:        getEnv("GARMIN_REFRESH_TOKEN", ""),
-		RedisHost:                 getEnv("REDIS_HOST", "redis"),
-		RedisPort:                 getEnvInt("REDIS_PORT", 6379),
-		RedisPassword:             getEnv("REDIS_PASSWORD", ""),
-		RedisDB:                   getEnvInt("REDIS_DB", 0),
-		JwtSecret:                 getEnv("JWT_SECRET", ""),
-		RefreshTokenExpiration:    getEnvInt("REFRESH_JWT_EXPIRATION", 7),
-		AccessJwtExpiration:       getEnvInt("ACCESS_JWT_EXPIRATION", 15),
-		SentryDSN:                 getEnv("SENTRY_DSN", ""),
-		VCCDBHost:                 getEnv("POSTGRES_VCC_HOST", ""),
-		VCCDBPort:                 getEnv("POSTGRES_VCC_PORT", ""),
-		VCCDBDatabase:             getEnv("POSTGRES_VCC_DATABASE", ""),
-		VCCDBUser:                 getEnv("POSTGRES_VCC_USER", ""),
-		VCCDBPassword:             getEnv("POSTGRES_VCC_PASSWORD", ""),
-		VCCDBSchema:               getEnv("POSTGRES_VCC_SCHEMA", ""),
-		DDService:                 getEnv("DD_SERVICE", ""),
-		DDApiKey:                  getEnv("DD_API_KEY", ""),
-		DDSite:                    getEnv("DD_SITE", ""),
-		DDENV:                     getEnv("DD_ENV", ""),
-		DDVersion:                 getEnv("DD_VERSION", ""),
-		DDAentHost:                getEnv("DD_AGENT_HOST", ""),
-		DDTraceAgentPort:          getEnv("DD_TRACE_AGENT_PORT", ""),
-		Timeout:                   getEnvInt("TIMEOUT", 30),
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+
+	viper.SetDefault("POSTGRES_URL", "postgres://user:password@localhost:5432/event_registration?sslmode=disable")
+	viper.SetDefault("REDIS_URL", "localhost:6379")
+	viper.SetDefault("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+	viper.SetDefault("CACHE_TIMEOUT", "5m")
+	viper.SetDefault("REFRESH_JWT_EXPIRATION", 7)
+	viper.SetDefault("ACCESS_JWT_EXPIRATION", 1)
+
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, err
+		}
 	}
 
-	return cfg, nil
+	var cfg Config
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
