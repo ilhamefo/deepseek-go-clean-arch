@@ -4,7 +4,7 @@
 ARG GO_VERSION=1.25
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
-ARG SERVICE_NAME=auth-service
+ARG SERVICE_NAME=garmin-service
 
 # Build stage
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS builder
@@ -76,7 +76,7 @@ LABEL org.opencontainers.image.title="Garmin Exporter Go" \
     org.opencontainers.image.created="${BUILD_DATE}"
 
 # Build arguments for runtime
-ARG SERVICE_NAME=auth-service
+ARG SERVICE_NAME=garmin-service
 ARG PORT=5051
 
 # Set environment variables

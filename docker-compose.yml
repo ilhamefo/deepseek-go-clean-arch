@@ -6,12 +6,12 @@ services:
       dockerfile: cmd/server/Dockerfile
       args:
         GO_VERSION: 1.25
-        SERVICE_NAME: auth-service
+        SERVICE_NAME: garmin-service
         PORT: 5051
         VERSION: ${VERSION:-dev}
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
-    container_name: auth-service
+    container_name: garmin-service
     env_file:
       - .env.dev
     ports:
@@ -34,8 +34,8 @@ services:
       - ./logs:/app/logs:rw
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.auth-service.rule=Host(`localhost`)"
-      - "traefik.http.services.auth-service.loadbalancer.server.port=5051"
+      - "traefik.http.routers.garmin-service.rule=Host(`localhost`)"
+      - "traefik.http.services.garmin-service.loadbalancer.server.port=5051"
 
   # PostgreSQL Database for Garmin data
   postgres:
