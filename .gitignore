@@ -11,6 +11,8 @@ main.exe
 .vscode
 exporter_docs
 /logs/*.log
+/logs/*.log.gz
+/logs/postgresql/*.log
 *.exe
 /responses
 .env*
