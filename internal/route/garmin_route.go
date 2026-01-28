@@ -24,6 +24,8 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	app.Get("/health-check", h.HealthCheck)
+	app.Get("/activity/:activityID", h.GetActivity)
+
 	app.Post("/refresh", h.Refresh)
 	app.Post("/activity-types", h.GetActivityTypes)
 	app.Post("/user-profile", h.GetUserProfile)

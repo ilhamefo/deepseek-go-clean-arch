@@ -290,3 +290,26 @@ func (h *GarminHandler) GetSleepByDate(c *fiber.Ctx) error {
 
 	return h.handler.ResponseSuccess(c, nil)
 }
+
+// Activity godoc
+// @Summary Activity
+// @Description This endpoint is used to get Activity Garmin activity.
+// @Tags Garmin
+// @Accept  json
+// @Param activityID path int true "Activity ID"
+// @Produce  json
+// @Router /activity/{activityID} [get]
+func (h *GarminHandler) GetActivity(c *fiber.Ctx) error {
+	requestActivityID := new(request.ActivityRequest)
+
+	if err := c.ParamsParser(requestActivityID); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	res, err := h.service.GetActivity(c.Context(), requestActivityID.ActivityID)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, res)
+}

@@ -116,8 +116,12 @@ func NewGarminGormDB(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, err
 		cfg.GarminDB,
 	)
 
-	db, err := gorm.Open(postgres.Open(connURL), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  connURL,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{
 		SkipDefaultTransaction: true,
+		PrepareStmt:            false,
 	})
 	if err != nil {
 		return nil, err

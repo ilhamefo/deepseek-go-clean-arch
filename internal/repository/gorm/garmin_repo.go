@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"context"
-	"event-registration/internal/common/helper"
 	"event-registration/internal/core/domain"
 	"fmt"
 
@@ -834,8 +833,6 @@ func (r *GarminRepo) HealthCheck(ctx context.Context) (err error) {
 		return err
 	}
 
-	r.logger.Debug("database health check passed")
-
 	return nil
 }
 
@@ -846,7 +843,7 @@ func (r *GarminRepo) UpsertSleepByDate(ctx context.Context, data *domain.SleepRe
 		return nil
 	}
 
-	tx := r.db.Debug().WithContext(ctx).Begin()
+	tx := r.db.WithContext(ctx).Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -857,8 +854,6 @@ func (r *GarminRepo) UpsertSleepByDate(ctx context.Context, data *domain.SleepRe
 		r.logger.Error("failed to begin transaction", zap.Error(err))
 		return err
 	}
-
-	helper.PrettyPrint(data.DailySleepDTO)
 
 	err = tx.Omit("ID").Clauses(
 		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
@@ -883,4 +878,16 @@ func (r *GarminRepo) UpsertSleepByDate(ctx context.Context, data *domain.SleepRe
 	}
 
 	return nil
+}
+
+func (r *GarminRepo) GetActivity(ctx context.Context, id string) (activity *domain.Activity, err error) {
+	err = r.db.WithContext(ctx).
+		Model(&activity).
+		Where("activity_id = ?", id).Scan(&activity).Error
+	if err != nil {
+		r.logger.Error("failed to get activity", zap.Error(err), zap.String("id", id))
+		return nil, err
+	}
+
+	return activity, nil
 }

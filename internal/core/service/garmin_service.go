@@ -39,13 +39,13 @@ func NewGarminService(repo domain.GarminRepository, logger *zap.Logger, config *
 
 func (s *GarminService) HealthCheck(ctx context.Context) (err error) {
 	// readyz check redis
-	result, err := s.redisClient.Ping(ctx).Result()
+	_, err = s.redisClient.Ping(ctx).Result()
 	if err != nil {
 		s.logger.Error("error_ping_redis", zap.Error(err))
 		return err
 	}
 
-	s.logger.Info("redis_ping_success", zap.String("result", result))
+	// s.logger.Info("redis_ping_success", zap.String("result", result))
 
 	err = s.repo.HealthCheck(ctx)
 	if err != nil {
@@ -900,4 +900,14 @@ func (s *GarminService) SleepByDate(ctx context.Context, r *request.GarminByDate
 	}
 
 	return err
+}
+
+func (s *GarminService) GetActivity(ctx context.Context, activityID string) (res *domain.Activity, err error) {
+	res, err = s.repo.GetActivity(ctx, activityID)
+	if err != nil {
+		s.logger.Error("error_upsert_sleep_data", zap.Error(err))
+		return nil, err
+	}
+
+	return res, nil
 }

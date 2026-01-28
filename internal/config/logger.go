@@ -117,6 +117,6 @@ func (l *ZapLogger) Trace(ctx context.Context, begin time.Time, fc func() (strin
 	if err != nil {
 		l.zapLogger.Error("SQL query failed", append(fields, zap.Error(err))...)
 	} else {
-		l.zapLogger.Debug("SQL query executed", fields...)
+		// l.zapLogger.Debug("SQL query executed", fields...)
 	}
 }
