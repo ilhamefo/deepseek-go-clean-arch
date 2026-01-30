@@ -9,3 +9,9 @@ scrape_configs:
         labels:
           environment: 'development'
           service: 'garmin-exporter-api'
+  - job_name: 'auth-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:5052']
+        labels:
+          environment: 'development'
+          service: 'auth-exporter-api'

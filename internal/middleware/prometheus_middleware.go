@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func PrometheusMiddleware() fiber.Handler {
+func (m *Middleware) PrometheusMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 
@@ -18,12 +18,14 @@ func PrometheusMiddleware() fiber.Handler {
 
 		duration := time.Since(start)
 
-		metric.RecordHTTPRequest(
-			c.Method(),
-			c.Route().Path,
-			c.Response().StatusCode(),
-			duration,
-		)
+		if c.Route().Path != "/metrics" {
+			metric.RecordHTTPRequest(
+				c.Method(),
+				c.Route().Path,
+				c.Response().StatusCode(),
+				duration,
+			)
+		}
 
 		return err
 	}

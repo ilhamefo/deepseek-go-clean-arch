@@ -3,13 +3,11 @@ package config
 import (
 	"event-registration/internal/middleware"
 	"net/http"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/storage/redis"
 )
@@ -30,12 +28,12 @@ func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage) *fiber.App
 	}))
 	app.Use(compress.New())
 	app.Use(helmet.New())
-	app.Use(limiter.New(limiter.Config{
-		Max:          100,
-		Expiration:   1 * time.Minute,
-		LimitReached: limitReachedResponse(),
-		Store:        redisStore,
-	}))
+	// app.Use(limiter.New(limiter.Config{
+	// 	Max:          100,
+	// 	Expiration:   1 * time.Minute,
+	// 	LimitReached: limitReachedResponse(),
+	// 	Store:        redisStore,
+	// }))
 	app.Use(recover.New())
 
 	return app

@@ -81,12 +81,13 @@ func NewGormDBAuth(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error
 		cfg.AuthDB,
 	)
 
-	db, err := gorm.Open(postgres.Open(connURL), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  connURL,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{
 		SkipDefaultTransaction: true,
+		PrepareStmt:            false,
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	db.Logger = loggr
 
@@ -95,9 +96,9 @@ func NewGormDBAuth(cfg *common.Config, loggr *config.ZapLogger) (*gorm.DB, error
 		return nil, err
 	}
 
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetMaxOpenConns(100) // Naikkan dari default 25
+	sqlDB.SetMaxIdleConns(20)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
 	if !cfg.IsProduction {
 		return db.Debug(), nil

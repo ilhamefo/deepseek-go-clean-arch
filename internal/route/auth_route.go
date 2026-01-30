@@ -5,7 +5,9 @@ import (
 	"event-registration/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/swagger"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func RegisterAuthRoutes(app *fiber.App, authHandler *handler.AuthHandler, m *middleware.Middleware) {
@@ -14,6 +16,8 @@ func RegisterAuthRoutes(app *fiber.App, authHandler *handler.AuthHandler, m *mid
 		DocExpansion:    "list",
 		WithCredentials: true,
 	}))
+
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	auth := app.Group("/auth")
 	auth.Group("/login", authHandler.Login)

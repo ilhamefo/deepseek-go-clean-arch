@@ -49,6 +49,7 @@ func (r *AuthRepo) Register(user domain.User) (err error) {
 
 func (r *AuthRepo) FindByEmail(email string) (user *domain.User, err error) {
 	err = r.db.Table("users").
+		Select("id", "email", "password", "name", "picture").
 		Where("email = ?", email).
 		First(&user).Error
 	if err != nil {

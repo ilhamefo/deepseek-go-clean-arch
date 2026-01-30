@@ -13,6 +13,8 @@ type Config struct {
 	CacheTimeout              time.Duration `mapstructure:"CACHE_TIMEOUT"`
 	ServerAddress             string        `mapstructure:"SERVER_ADDRESS"`
 	ServerPort                string        `mapstructure:"SERVER_PORT"`
+	ServerAuthAddress         string        `mapstructure:"SERVER_AUTH_ADDRESS"`
+	ServerAuthPort            string        `mapstructure:"SERVER_AUTH_PORT"`
 	ServerExporterAddress     string        `mapstructure:"SERVER_EXPORTER_ADDRESS"`
 	ServerExporterPort        string        `mapstructure:"SERVER_EXPORTER_PORT"`
 	PostgresPlnMobileURL      string        `mapstructure:"POSTGRES_PLN_MOBILE_URL"`

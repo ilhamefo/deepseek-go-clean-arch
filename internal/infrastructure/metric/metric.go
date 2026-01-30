@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -149,7 +150,7 @@ var (
 
 // RecordHTTPRequest records HTTP request metrics
 func RecordHTTPRequest(method, path string, statusCode int, duration time.Duration) {
-	status := string(rune(statusCode/100)) + "xx"
+	status := fmt.Sprintf("%dxx", statusCode/100)
 
 	HTTPRequestDuration.WithLabelValues(method, path, status).Observe(duration.Seconds())
 	HTTPRequestTotal.WithLabelValues(method, path, status).Inc()
