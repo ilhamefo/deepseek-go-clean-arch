@@ -21,6 +21,7 @@ func RegisterAuthRoutes(app *fiber.App, authHandler *handler.AuthHandler, m *mid
 
 	auth := app.Group("/auth")
 	auth.Group("/login", authHandler.Login)
+	auth.Group("/create-password", authHandler.CreatePassword)
 
 	google := auth.Group("/google")
 	google.Get("/login-url", authHandler.GetLoginUrl)

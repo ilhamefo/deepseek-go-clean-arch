@@ -25,8 +25,8 @@ export const options = {
 
   // Scenario 3: Stress test (find breaking point)
   stages: [
-    // { duration: '5m', target: 500 },   // Ramp up to 200 users
-    { duration: '5s', target: 100 },   // Stay at 200 users
+    { duration: '5m', target: 500 },   // Ramp up to 200 users
+    // { duration: '5s', target: 10 },   // Stay at 200 users
     // { duration: '2m', target: 400 },   // Spike to 400 users
     // { duration: '5m', target: 400 },   // Stay at 400 users
     // { duration: '2m', target: 0 },     // Ramp down
@@ -62,7 +62,7 @@ const BASE_URL = 'http://host.docker.internal:5052';
 // Test data
 const credentials = {
   email: 'ilham@oninyon.com',
-  password: 'password',
+  password: 'ixITaMngCRj3',
 };
 
 // Main test function

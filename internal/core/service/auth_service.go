@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
@@ -24,6 +25,11 @@ import (
 const (
 	PASSWORD_LENGTH     = 12
 	PASSWORD_MIN_LENGTH = 8
+	// Argon2 parameters
+	ARGON2_TIME    = 3
+	ARGON2_MEMORY  = 64 * 1024 // 64 MB
+	ARGON2_THREADS = 4
+	ARGON2_SALT    = 16
 )
 
 var GoogleUserinfoURL = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -174,7 +180,7 @@ func (s *AuthService) Register(user domain.User) (err error) {
 		user.EmailVerifiedAt = &now
 	}
 
-	password, err := s.GenerateSafePassword(PASSWORD_LENGTH)
+	password, err := s.GenerateSafePasswordV2(PASSWORD_LENGTH)
 	if err != nil {
 		s.logger.Error(
 			"error_generate_password",
@@ -211,23 +217,86 @@ func (s *AuthService) GenerateSafePassword(length int) (string, error) {
 	return string(hashedPassword), nil
 }
 
+func (s *AuthService) GenerateSafePasswordV2(length int) (string, error) {
+	if length < PASSWORD_MIN_LENGTH {
+		length = PASSWORD_MIN_LENGTH
+	}
+
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		s.logger.Error("error_generate_password", zap.Error(err))
+		return "", err
+	}
+
+	rawPassword := base64.RawURLEncoding.EncodeToString(bytes)[:length]
+
+	helper.PrettyPrint(
+		rawPassword,
+		"RAW PASSWORD ===================",
+	)
+
+	salt := make([]byte, ARGON2_SALT)
+	_, err = rand.Read(salt)
+	if err != nil {
+		s.logger.Error("error_generate_salt", zap.Error(err))
+		return "", err
+	}
+
+	hashedPassword := argon2.IDKey(
+		[]byte(rawPassword),
+		salt,
+		ARGON2_TIME,
+		ARGON2_MEMORY,
+		ARGON2_THREADS,
+		32,
+	)
+
+	hashedWithSalt := append(salt, hashedPassword...)
+	encodedHash := base64.RawURLEncoding.EncodeToString(hashedWithSalt)
+
+	return encodedHash, nil
+}
+
+func (s *AuthService) VerifyArgon2Password(hashedPassword string, rawPassword string) (bool, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(hashedPassword)
+	if err != nil {
+		s.logger.Error("error_decode_hash", zap.Error(err))
+		return false, err
+	}
+
+	salt := decoded[:ARGON2_SALT]
+	storedHash := decoded[ARGON2_SALT:]
+
+	computedHash := argon2.IDKey(
+		[]byte(rawPassword),
+		salt,
+		ARGON2_TIME,
+		ARGON2_MEMORY,
+		ARGON2_THREADS,
+		32,
+	)
+
+	return string(storedHash) == string(computedHash), nil
+}
+
 func (s *AuthService) Login(ctx context.Context, req *request.LoginRequest) (accessToken, refreshToken string, err error) {
 	user, err := s.repo.FindByEmail(req.Email)
 	if err != nil {
 		s.logger.Error("error_get_user_by_email", zap.Error(err))
-		return accessToken, refreshToken, errors.New("invalid_credentials")
+		return accessToken, refreshToken, errors.New(constant.ACCESS_TOKEN)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
-	if err != nil {
-		s.logger.Error("error_compare_password", zap.Error(err))
-		return accessToken, refreshToken, errors.New("invalid_credentials")
+	isValid, err := s.VerifyArgon2Password(user.Password, req.Password)
+	if err != nil || !isValid {
+		s.logger.Error("error_verify_password", zap.Error(err))
+		return accessToken, refreshToken, errors.New(constant.ACCESS_TOKEN)
 	}
 
 	accessToken, refreshToken, err = s.GenerateToken(user)
 	if err != nil {
 		s.logger.Error("error_create_token", zap.Error(err))
-		return accessToken, refreshToken, errors.New("invalid_credentials")
+		return accessToken, refreshToken, errors.New(constant.ACCESS_TOKEN)
 	}
 
 	return accessToken, refreshToken, nil

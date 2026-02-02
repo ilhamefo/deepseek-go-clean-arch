@@ -152,6 +152,22 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	return h.handler.ResponseSuccess(c, nil)
 }
 
+// Create Password godoc
+// @Summary Create Password
+// @Description Create Password
+// @Tags Auth
+// @Accept  json
+// @Produce  json
+// @Router /auth/create-password [get]
+func (h *AuthHandler) CreatePassword(c *fiber.Ctx) error {
+	res, err := h.service.GenerateSafePasswordV2(12)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, fiber.Map{"password": res})
+}
+
 // Logout godoc
 // @Summary Logout
 // @Description Logout from the application

@@ -12,8 +12,6 @@ import (
 	"event-registration/internal/middleware"
 	"event-registration/internal/repository/gorm"
 	"event-registration/internal/route"
-	"log"
-	"net/http"
 	_ "net/http/pprof"
 
 	// swag init --generalInfo cmd/server_auth/main.go -o cmd/server_auth/docs --tags Auth
@@ -102,7 +100,7 @@ func main() {
 }
 
 func startProfilingServer() {
-	go func() {
-		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
-	}()
+	// go func() {
+	// 	log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	// }()
 }
