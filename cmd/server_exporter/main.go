@@ -21,6 +21,8 @@ import (
 	"go.uber.org/zap"
 
 	_ "event-registration/exporter_docs"
+	// swag init --generalInfo cmd/server_exporter/main.go -o exporter_docs --tags exporter
+	// go build -o main.exe cmd/server_exporter/main.go
 )
 
 // @title Fiber Example API

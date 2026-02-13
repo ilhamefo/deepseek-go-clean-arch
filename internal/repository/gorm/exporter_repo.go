@@ -34,11 +34,19 @@ func (r *ExporterRepo) GetAllUnit() (result []*domain.Regional, err error) {
 }
 
 func (r *ExporterRepo) FindTransaksi(req *request.RekapRequest) (result []*domain.Transaksi, err error) {
+	var query *gorm.DB
 
-	query := r.db.Select("name, consumer_name, type, amount, status_code, meter_number, title, payment_gateway, created_at, token, up.id_unit_up AS unit_up,	up.nama_unit_up, ap.nama_unit_ap, upi.nama_unit_upi, upi.id_unit_upi as unit_upi, ap.id_unit_ap as unit_ap").
-		Joins("JOIN public.pln_unit_upi upi ON plnmobile.vw_transaksi.unit_upi = upi.id_unit_upi :: text").
-		Joins("JOIN public.pln_unit_ap ap ON plnmobile.vw_transaksi.unit_ap = ap.id_unit_ap").
-		Joins("JOIN public.pln_unit_up up ON plnmobile.vw_transaksi.unit_up = up.id_unit_up")
+	if req.IsDBPlnMobile {
+		query = r.dbPlnMobile.Table("public.transaksi").Select("name, consumer_name, type, amount, status_code, meter_id as meter_number, title, payment_gateway, created_at, token, up.id_unit_up AS unit_up,	up.nama_unit_up, ap.nama_unit_ap, upi.nama_unit_upi, upi.id_unit_upi as unit_upi, ap.id_unit_ap as unit_ap").
+			Joins("JOIN public.pln_unit_upi upi ON public.transaksi.unit_upi = upi.id_unit_upi :: text").
+			Joins("JOIN public.pln_unit_ap ap ON public.transaksi.unit_ap = ap.id_unit_ap").
+			Joins("JOIN public.pln_unit_up up ON public.transaksi.unit_up = up.id_unit_up")
+	} else {
+		query = r.db.Select("name, consumer_name, type, amount, status_code, meter_number, title, payment_gateway, created_at, token, up.id_unit_up AS unit_up,	up.nama_unit_up, ap.nama_unit_ap, upi.nama_unit_upi, upi.id_unit_upi as unit_upi, ap.id_unit_ap as unit_ap").
+			Joins("JOIN public.pln_unit_upi upi ON plnmobile.vw_transaksi.unit_upi = upi.id_unit_upi :: text").
+			Joins("JOIN public.pln_unit_ap ap ON plnmobile.vw_transaksi.unit_ap = ap.id_unit_ap").
+			Joins("JOIN public.pln_unit_up up ON plnmobile.vw_transaksi.unit_up = up.id_unit_up")
+	}
 
 	if len(req.Induk) > 0 {
 		query.Where("unit_upi = ?", req.Induk)
@@ -75,10 +83,19 @@ func (r *ExporterRepo) FindTransaksi(req *request.RekapRequest) (result []*domai
 }
 
 func (r *ExporterRepo) CountTransaksi(req *request.RekapRequest) (result int64, err error) {
-	query := r.db.Model(&domain.Transaksi{}).
-		Joins("JOIN public.pln_unit_upi upi ON plnmobile.vw_transaksi.unit_upi = upi.id_unit_upi :: text").
-		Joins("JOIN public.pln_unit_ap ap ON plnmobile.vw_transaksi.unit_ap = ap.id_unit_ap").
-		Joins("JOIN public.pln_unit_up up ON plnmobile.vw_transaksi.unit_up = up.id_unit_up")
+	var query *gorm.DB
+
+	if req.IsDBPlnMobile {
+		query = r.dbPlnMobile.Table("transaksi").
+			Joins("JOIN public.pln_unit_upi upi ON public.transaksi.unit_upi = upi.id_unit_upi :: text").
+			Joins("JOIN public.pln_unit_ap ap ON public.transaksi.unit_ap = ap.id_unit_ap").
+			Joins("JOIN public.pln_unit_up up ON public.transaksi.unit_up = up.id_unit_up")
+	} else {
+		query = r.db.Model(&domain.Transaksi{}).
+			Joins("JOIN public.pln_unit_upi upi ON plnmobile.vw_transaksi.unit_upi = upi.id_unit_upi :: text").
+			Joins("JOIN public.pln_unit_ap ap ON plnmobile.vw_transaksi.unit_ap = ap.id_unit_ap").
+			Joins("JOIN public.pln_unit_up up ON plnmobile.vw_transaksi.unit_up = up.id_unit_up")
+	}
 
 	if len(req.Induk) > 0 {
 		query.Where("unit_upi = ?", req.Induk)

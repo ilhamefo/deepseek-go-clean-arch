@@ -197,14 +197,15 @@ func (s *ExporterService) ExportRekapTransaksi(req *request.RekapRequest) (err e
 			)
 
 			batchReq := &request.RekapRequest{
-				UnitCode:  req.UnitCode,
-				Area:      req.Area,
-				Induk:     req.Induk,
-				Pusat:     req.Pusat,
-				DateStart: req.DateStart,
-				DateEnd:   req.DateEnd,
-				Limit:     dbLimit,
-				Offset:    dbOffset,
+				UnitCode:      req.UnitCode,
+				Area:          req.Area,
+				Induk:         req.Induk,
+				Pusat:         req.Pusat,
+				DateStart:     req.DateStart,
+				DateEnd:       req.DateEnd,
+				IsDBPlnMobile: req.IsDBPlnMobile,
+				Limit:         dbLimit,
+				Offset:        dbOffset,
 			}
 
 			res, err := s.repo.FindTransaksi(batchReq)
