@@ -105,14 +105,60 @@ services:
   #     - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
   #     - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
 
-  k6:
-    image: grafana/k6:latest
-    container_name: k6-test
+  # k6:
+  #   image: grafana/k6:latest
+  #   container_name: k6-test
+  #   networks:
+  #     - auth-network
+  #   volumes:
+  #     - ./k6:/scripts
+  #   environment:
+  #     - BASE_URL=http://host.docker.internal:5051
+  #     - ENDPOINT=/health-check
+  #   command: run /scripts/health-check-test.js
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    container_name: kratos-mailslurper
+    ports:
+      - "4436:4436"
+      - "4437:4437"
     networks:
       - auth-network
-    volumes:
-      - ./k6:/scripts
+
+  kratos-migrate:
+    image: oryd/kratos:v1.3.1
+    container_name: kratos-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      - BASE_URL=http://host.docker.internal:5051
-      - ENDPOINT=/health-check
-    command: run /scripts/health-check-test.js
+      DSN: postgres://postgres:postgres@postgres:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: migrate sql --read-from-env --yes --config /etc/config/kratos/kratos.yml
+    volumes:
+      - ./kratos:/etc/config/kratos
+    restart: "no"
+    networks:
+      - auth-network
+
+  kratos:
+    image: oryd/kratos:v1.3.1
+    container_name: kratos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kratos-migrate:
+        condition: service_completed_successfully
+    environment:
+      DSN: postgres://postgres:postgres@postgres:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+      LOG_LEAK_SENSITIVE_VALUES: "true"
+      SECRETS_COOKIE_0: oLPWWO4kzWC37M2OGIAhUv9dNLLnBq0D
+      SECRETS_CIPHER_0: WMQSl5eUt761Epkhtf5uvVpt7Gsdocr7
+    command: serve --config /etc/config/kratos/kratos.yml --dev
+    volumes:
+      - ./kratos:/etc/config/kratos
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    networks:
+      - auth-network
