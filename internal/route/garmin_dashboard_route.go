@@ -18,4 +18,5 @@ func RegisterGarminDashboardRoutes(app *fiber.App, h *handler.GarminDashboardHan
 
 	dashboard := app.Group("/dashboard")
 	dashboard.Get("/heart-rate", h.HeartRate)
+	dashboard.Get("/activities", h.Activities)
 }

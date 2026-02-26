@@ -39,3 +39,24 @@ func (h *GarminDashboardHandler) HeartRate(c *fiber.Ctx) error {
 
 	return h.handler.ResponseSuccess(c, res)
 }
+
+// Get activities godoc
+// @Summary Get activities with cursor pagination
+// @Description This endpoint is used to Get activities with cursor-based pagination.
+// @Tags Dashboard
+// @Accept  json
+// @Produce  json
+// @Param cursor query int false "Cursor for pagination (activity_id)"
+// @Param limit query int false "Limit per page (default: 10, max: 100)"
+// @Router /dashboard/activities [get]
+func (h *GarminDashboardHandler) Activities(c *fiber.Ctx) error {
+	cursor := c.QueryInt("cursor", 0)
+	limit := c.QueryInt("limit", 10)
+
+	res, err := h.service.GetActivities(c.Context(), int64(cursor), limit)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, res)
+}

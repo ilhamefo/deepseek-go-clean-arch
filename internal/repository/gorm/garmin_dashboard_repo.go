@@ -18,7 +18,7 @@ func NewGarminDashboardRepo(
 	db *gorm.DB, // `name:"GarminDB"`
 	logger *zap.Logger,
 ) domain.GarminDashboardRepository {
-	return &GarminDashboardRepo{db: db, logger: logger}
+	return &GarminDashboardRepo{db: db.Debug(), logger: logger}
 }
 
 func (r *GarminDashboardRepo) GetHeartRate(ctx context.Context, current time.Time) (res domain.HeartRate, err error) {
@@ -33,4 +33,41 @@ func (r *GarminDashboardRepo) GetHeartRate(ctx context.Context, current time.Tim
 	}
 
 	return res, nil
+}
+
+func (r *GarminDashboardRepo) GetActivities(ctx context.Context, cursor int64, limit int) (res []domain.ActivityVM, nextCursor int64, hasMore bool, err error) {
+
+	query := r.db.WithContext(ctx).
+		Select([]string{
+			"activity_id",
+			"activity_type_id",
+			"activity_name",
+			"distance",
+			"average_speed",
+			"max_speed",
+			"calories",
+			"begin_timestamp",
+		}).
+		Preload("ActivityType").
+		Order("begin_timestamp DESC, activity_id DESC")
+
+	if cursor > 0 {
+		query = query.Where("activity_id < ?", cursor)
+	}
+
+	err = query.Limit(limit + 1).Find(&res).Error
+	if err != nil {
+		r.logger.Error("failed to get activities", zap.Error(err))
+		return res, 0, false, err
+	}
+
+	hasMore = len(res) > limit
+	if hasMore {
+		res = res[:limit]
+		nextCursor = int64(res[len(res)-1].ActivityID)
+	} else if len(res) > 0 {
+		nextCursor = int64(res[len(res)-1].ActivityID)
+	}
+
+	return res, nextCursor, hasMore, nil
 }

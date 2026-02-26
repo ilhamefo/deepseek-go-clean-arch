@@ -38,3 +38,27 @@ func (s *GarminDashboardService) HeartRate(ctx context.Context) (res domain.Hear
 
 	return res, nil
 }
+
+func (s *GarminDashboardService) GetActivities(ctx context.Context, cursor int64, limit int) (res domain.ActivityPaginatedResponse, err error) {
+	if limit <= 0 {
+		limit = 10 // default limit
+	}
+	if limit > 100 {
+		limit = 100 // max limit
+	}
+
+	data, nextCursor, hasMore, err := s.repo.GetActivities(ctx, cursor, limit)
+	if err != nil {
+		s.logger.Error("error_get_activities", zap.Error(err))
+		return res, err
+	}
+
+	res = domain.ActivityPaginatedResponse{
+		Data:       data,
+		NextCursor: nextCursor,
+		HasMore:    hasMore,
+		Limit:      limit,
+	}
+
+	return res, nil
+}
