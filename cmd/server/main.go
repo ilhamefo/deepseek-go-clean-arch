@@ -56,6 +56,11 @@ func main() {
 			fx.Annotate(gorm.NewGarminRepo, fx.ParamTags(`name:"GarminDB"`)),
 			handler.NewGarminHandler,
 			service.NewGarminService,
+
+			// dashboard
+			fx.Annotate(gorm.NewGarminDashboardRepo, fx.ParamTags(`name:"GarminDB"`)),
+			handler.NewGarminDashboardHandler,
+			service.NewGarminDashboardService,
 			config.NewFiberApp,
 		),
 
@@ -93,7 +98,7 @@ func main() {
 		}),
 
 		fx.Invoke(route.RegisterGarminRoutes),
-		// fx.Invoke(route.RegisterAuthRoutes),
+		fx.Invoke(route.RegisterGarminDashboardRoutes),
 	)
 
 	app.Run()

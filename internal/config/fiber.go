@@ -21,7 +21,7 @@ func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage) *fiber.App
 	})
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://127.0.0.1:3000",
+		AllowOrigins:     "http://127.0.0.1:3000,http://127.0.0.1:4000,http://172.16.1.59:4000",
 		AllowHeaders:     "Origin, Content-Type, Accept",
 		AllowCredentials: true,
 		AllowMethods:     "GET,POST",
