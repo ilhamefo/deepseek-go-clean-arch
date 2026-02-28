@@ -26,9 +26,9 @@ func (ActivityVM) TableName() string {
 	return "activities"
 }
 
-type ActivityPaginatedResponse struct {
-	Data       []ActivityVM `json:"data"`
-	NextCursor int64        `json:"nextCursor,omitempty"`
-	HasMore    bool         `json:"hasMore"`
-	Limit      int          `json:"limit"`
+type PaginatedResponse[T any] struct {
+	Data       []T   `json:"data"`
+	NextCursor int64 `json:"nextCursor,omitempty"`
+	HasMore    bool  `json:"hasMore"`
+	Limit      int   `json:"limit"`
 }

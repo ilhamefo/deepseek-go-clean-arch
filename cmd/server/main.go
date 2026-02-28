@@ -13,7 +13,7 @@ import (
 	"event-registration/internal/route"
 
 	_ "event-registration/cmd/server/docs"
-	// swag init --generalInfo cmd/server/main.go -o cmd/server/docs --tags Garmin
+	// swag init --generalInfo cmd/server/main.go -o cmd/server/docs --tags Garmin,Dashboard
 
 	fibertrace "github.com/DataDog/dd-trace-go/contrib/gofiber/fiber.v2/v2"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"

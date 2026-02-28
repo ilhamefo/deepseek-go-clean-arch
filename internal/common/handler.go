@@ -29,6 +29,10 @@ func (h *Handler) ResponseSuccess(c *fiber.Ctx, data interface{}) error {
 	})
 }
 
+func (h *Handler) ResponseCursorPagination(c *fiber.Ctx, data interface{}) error {
+	return c.Status(http.StatusOK).JSON(data)
+}
+
 func (h *Handler) ParseUser(c *fiber.Ctx) (user domain.User) {
 	return c.Locals("user").(domain.User)
 }

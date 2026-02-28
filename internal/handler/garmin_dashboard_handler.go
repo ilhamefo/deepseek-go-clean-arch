@@ -58,5 +58,5 @@ func (h *GarminDashboardHandler) Activities(c *fiber.Ctx) error {
 		return fiber.NewError(http.StatusBadRequest, err.Error())
 	}
 
-	return h.handler.ResponseSuccess(c, res)
+	return h.handler.ResponseCursorPagination(c, res)
 }
