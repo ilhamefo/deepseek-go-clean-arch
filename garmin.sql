@@ -129,6 +129,9 @@ CREATE TABLE "public"."activities" (
 )
 ;
 
+ALTER TABLE "public"."activities" 
+  ADD COLUMN "total_sets" int2;
+  
 -- ----------------------------
 -- Table structure for activity_detail_metrics
 -- ----------------------------

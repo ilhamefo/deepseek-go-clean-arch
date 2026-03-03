@@ -680,7 +680,7 @@ func (r *GarminRepo) UpsertHRVByDate(ctx context.Context, data *domain.HRVData) 
 
 func (r *GarminRepo) UpsertActivityTypes(ctx context.Context, data []*domain.ActivityType) (err error) {
 	if data == nil {
-		r.logger.Info("no hrv data to upsert")
+		r.logger.Info("no data to upsert")
 		return nil
 	}
 
@@ -697,36 +697,24 @@ func (r *GarminRepo) UpsertActivityTypes(ctx context.Context, data []*domain.Act
 	}
 
 	// Check context cancellation
-	// select {
-	// case <-ctx.Done():
-	// 	tx.Rollback()
-	// 	return ctx.Err()
-	// default:
-	// }
-
-	// err = tx.Omit("ID").Clauses(
-	// 	clause.OnConflict{
-	// 		Columns: []clause.Column{
-	// 			{Name: "type_id"},
-	// 			{Name: "type_key"},
-	// 		},
-	// 		UpdateAll: true,
-	// 	}).Create(&data).Error
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	r.logger.Error("failed to upsert hrv", zap.Error(err))
-	// 	return err
-	// }
-
-	// if err := tx.Commit().Error; err != nil {
-	// 	r.logger.Error("failed to commit transaction", zap.Error(err))
-	// 	return err
-	// }
-
-	// Sleep for 5 seconds
-	if err = tx.Exec("SELECT pg_sleep(5)").Error; err != nil {
+	select {
+	case <-ctx.Done():
 		tx.Rollback()
-		r.logger.Error("failed to execute sleep query", zap.Error(err))
+		return ctx.Err()
+	default:
+	}
+
+	err = tx.Omit("ID").Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{
+				{Name: "type_id"},
+				{Name: "type_key"},
+			},
+			UpdateAll: true,
+		}).Create(&data).Error
+	if err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert", zap.Error(err))
 		return err
 	}
 

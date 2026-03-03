@@ -178,6 +178,7 @@ type Activity struct {
 	AutoCalcCalories                      bool    `json:"autoCalcCalories" gorm:"column:auto_calc_calories"`
 	ElevationCorrected                    bool    `json:"elevationCorrected" gorm:"column:elevation_corrected"`
 	ATPActivity                           bool    `json:"atpActivity" gorm:"column:atp_activity"`
+	TotalSets                             int     `json:"totalSets" gorm:"column:total_sets"`
 
 	// Foreign key columns
 	ActivityTypeID int `gorm:"column:activity_type_id;index"`

@@ -2,12 +2,13 @@ package domain
 
 import (
 	"context"
+	"event-registration/internal/common/request"
 	"time"
 )
 
 type GarminDashboardRepository interface {
 	GetHeartRate(ctx context.Context, current time.Time) (res HeartRate, err error)
-	GetActivities(ctx context.Context, cursor int64, limit int) (res []ActivityVM, nextCursor int64, hasMore bool, err error)
+	GetActivities(ctx context.Context, payload *request.ActivityDashboardRequest) (res []ActivityVM, nextCursor int64, hasMore bool, err error)
 }
 
 type ActivityVM struct {
@@ -19,6 +20,11 @@ type ActivityVM struct {
 	AverageSpeed       float64      `json:"averageSpeed" gorm:"column:average_speed;type:decimal(8,5)"`
 	AverageMovingSpeed float64      `json:"averageMovingSpeed" gorm:"column:average_moving_speed;type:decimal(8,5)"`
 	MaxSpeed           float64      `json:"maxSpeed" gorm:"column:max_speed;type:decimal(8,5)"`
+	MaxHR              int          `json:"maxHr" gorm:"column:max_hr"`
+	AverageHR          int          `json:"averageHr" gorm:"column:average_hr"`
+	Duration           float64      `json:"duration" gorm:"column:duration"`
+	TotalSets          int          `json:"totalSets" gorm:"column:total_sets"`
+	StartTimeLocal     *time.Time   `json:"startTime" gorm:"column:start_time_local"`
 	Calories           float64      `json:"calories" gorm:"column:calories"`
 }
 

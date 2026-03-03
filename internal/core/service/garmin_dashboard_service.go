@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"event-registration/internal/common"
+	"event-registration/internal/common/request"
 	"event-registration/internal/core/domain"
 	"net/http"
 	"time"
@@ -39,15 +40,15 @@ func (s *GarminDashboardService) HeartRate(ctx context.Context) (res domain.Hear
 	return res, nil
 }
 
-func (s *GarminDashboardService) GetActivities(ctx context.Context, cursor int64, limit int) (res domain.PaginatedResponse[domain.ActivityVM], err error) {
-	if limit <= 0 {
-		limit = 10 // default limit
+func (s *GarminDashboardService) GetActivities(ctx context.Context, payload *request.ActivityDashboardRequest) (res domain.PaginatedResponse[domain.ActivityVM], err error) {
+	if payload.Limit <= 0 {
+		payload.Limit = 10 // default limit
 	}
-	if limit > 100 {
-		limit = 100 // max limit
+	if payload.Limit > 100 {
+		payload.Limit = 100 // max limit
 	}
 
-	data, nextCursor, hasMore, err := s.repo.GetActivities(ctx, cursor, limit)
+	data, nextCursor, hasMore, err := s.repo.GetActivities(ctx, payload)
 	if err != nil {
 		s.logger.Error("error_get_activities", zap.Error(err))
 		return res, err
@@ -57,7 +58,7 @@ func (s *GarminDashboardService) GetActivities(ctx context.Context, cursor int64
 		Data:       data,
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
-		Limit:      limit,
+		Limit:      payload.Limit,
 	}
 
 	return res, nil

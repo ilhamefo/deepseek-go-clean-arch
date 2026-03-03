@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DAYS_TO_FETCH = 60
+	DAYS_TO_FETCH = 10
 )
 
 type GarminService struct {
@@ -140,86 +140,86 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicReque
 	}
 
 	// fetch Heart Rate Data for the past 60 days
-	now := time.Now()
-	days := make([]int, DAYS_TO_FETCH)
-	for i := range days {
-		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+	// now := time.Now()
+	// days := make([]int, DAYS_TO_FETCH)
+	// for i := range days {
+	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
-		hrRequest := &request.GarminByDateRequest{
-			GarminBasicRequest: *r,
-			Date:               date,
-		}
-		err = s.HeartRateByDate(ctx, hrRequest)
-		if err != nil {
-			s.logger.Error("error_fetch_heart_rate_data", zap.Error(err), zap.String("date", date))
-			continue
-		}
-		s.logger.Info("heart_rate_data_fetched", zap.String("date", date))
-	}
+	// 	hrRequest := &request.GarminByDateRequest{
+	// 		GarminBasicRequest: *r,
+	// 		Date:               date,
+	// 	}
+	// 	err = s.HeartRateByDate(ctx, hrRequest)
+	// 	if err != nil {
+	// 		s.logger.Error("error_fetch_heart_rate_data", zap.Error(err), zap.String("date", date))
+	// 		continue
+	// 	}
+	// 	s.logger.Info("heart_rate_data_fetched", zap.String("date", date))
+	// }
 
-	// fetch Step Data for the past 60 days
-	for i := range days {
-		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+	// // fetch Step Data for the past 60 days
+	// for i := range days {
+	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
-		hrRequest := &request.GarminByDateRequest{
-			GarminBasicRequest: *r,
-			Date:               date,
-		}
-		err = s.StepByDate(ctx, hrRequest)
-		if err != nil {
-			s.logger.Error("error_fetch_step_data", zap.Error(err), zap.String("date", date))
-			continue
-		}
-		s.logger.Info("step_data_fetched", zap.String("date", date))
-	}
+	// 	hrRequest := &request.GarminByDateRequest{
+	// 		GarminBasicRequest: *r,
+	// 		Date:               date,
+	// 	}
+	// 	err = s.StepByDate(ctx, hrRequest)
+	// 	if err != nil {
+	// 		s.logger.Error("error_fetch_step_data", zap.Error(err), zap.String("date", date))
+	// 		continue
+	// 	}
+	// 	s.logger.Info("step_data_fetched", zap.String("date", date))
+	// }
 
-	// fetch Step Data for the past 60 days
-	for i := range days {
-		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+	// // fetch Step Data for the past 60 days
+	// for i := range days {
+	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
-		hrRequest := &request.GarminByDateRequest{
-			GarminBasicRequest: *r,
-			Date:               date,
-		}
-		err = s.StepByDate(ctx, hrRequest)
-		if err != nil {
-			s.logger.Error("error_fetch_step_data", zap.Error(err), zap.String("date", date))
-			continue
-		}
-		s.logger.Info("step_data_fetched", zap.String("date", date))
-	}
+	// 	hrRequest := &request.GarminByDateRequest{
+	// 		GarminBasicRequest: *r,
+	// 		Date:               date,
+	// 	}
+	// 	err = s.StepByDate(ctx, hrRequest)
+	// 	if err != nil {
+	// 		s.logger.Error("error_fetch_step_data", zap.Error(err), zap.String("date", date))
+	// 		continue
+	// 	}
+	// 	s.logger.Info("step_data_fetched", zap.String("date", date))
+	// }
 
-	// fetch HRV Data for the past 60 days
-	for i := range days {
-		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+	// // fetch HRV Data for the past 60 days
+	// for i := range days {
+	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
-		hrRequest := &request.GarminByDateRequest{
-			GarminBasicRequest: *r,
-			Date:               date,
-		}
-		err = s.HRVByDate(ctx, hrRequest)
-		if err != nil {
-			s.logger.Error("error_fetch_hrv", zap.Error(err), zap.String("date", date))
-			continue
-		}
-		s.logger.Info("hrv_fetched", zap.String("date", date))
-	}
+	// 	hrRequest := &request.GarminByDateRequest{
+	// 		GarminBasicRequest: *r,
+	// 		Date:               date,
+	// 	}
+	// 	err = s.HRVByDate(ctx, hrRequest)
+	// 	if err != nil {
+	// 		s.logger.Error("error_fetch_hrv", zap.Error(err), zap.String("date", date))
+	// 		continue
+	// 	}
+	// 	s.logger.Info("hrv_fetched", zap.String("date", date))
+	// }
 
-	// fetch Sleep Data for the past 60 days
-	for i := range days {
-		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+	// // fetch Sleep Data for the past 60 days
+	// for i := range days {
+	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
-		hrRequest := &request.GarminByDateRequest{
-			GarminBasicRequest: *r,
-			Date:               date,
-		}
-		err = s.SleepByDate(ctx, hrRequest)
-		if err != nil {
-			s.logger.Error("error_fetch_hrv", zap.Error(err), zap.String("date", date))
-			continue
-		}
-		s.logger.Info("hrv_fetched", zap.String("date", date))
-	}
+	// 	hrRequest := &request.GarminByDateRequest{
+	// 		GarminBasicRequest: *r,
+	// 		Date:               date,
+	// 	}
+	// 	err = s.SleepByDate(ctx, hrRequest)
+	// 	if err != nil {
+	// 		s.logger.Error("error_fetch_hrv", zap.Error(err), zap.String("date", date))
+	// 		continue
+	// 	}
+	// 	s.logger.Info("hrv_fetched", zap.String("date", date))
+	// }
 
 	return nil
 }
@@ -288,7 +288,7 @@ func (s *GarminService) refreshActivities(ctx context.Context, r *request.Garmin
 }
 
 func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.GarminBasicRequest, start, limit int) ([]*domain.Activity, bool, error) {
-	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activitylist-service/activities/search/activities?limit=%d&start=%d", limit, start)
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activitylist-service/activities/search/activities?activityType=fitness_equipment&limit=%d&start=%d", limit, start)
 
 	maxRetries := 3
 	var lastErr error
@@ -401,6 +401,7 @@ func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.Garm
 			zap.Int("activities_count", len(pageActivities)),
 			zap.Bool("has_more", hasMore),
 			zap.Int("attempt", attempt),
+			zap.Any("activity_response", pageActivities),
 		)
 
 		return pageActivities, hasMore, nil
