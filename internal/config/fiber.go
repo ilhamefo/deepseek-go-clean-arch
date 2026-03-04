@@ -3,6 +3,7 @@ package config
 import (
 	"event-registration/internal/middleware"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
@@ -10,9 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/storage/redis"
+	"go.uber.org/zap"
 )
 
-func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage) *fiber.App {
+func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage, logger *zap.Logger) *fiber.App {
 	app := fiber.New(fiber.Config{
 		CaseSensitive: true,
 		StrictRouting: true,
@@ -34,7 +36,19 @@ func NewFiberApp(m *middleware.Middleware, redisStore *redis.Storage) *fiber.App
 	// 	LimitReached: limitReachedResponse(),
 	// 	Store:        redisStore,
 	// }))
-	app.Use(recover.New())
+
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+		StackTraceHandler: func(c *fiber.Ctx, e interface{}) {
+			logger.Error("panic_recovered",
+				zap.String("path", c.Path()),
+				zap.String("method", c.Method()),
+				zap.String("ip", c.IP()),
+				zap.Any("panic", e),
+				zap.String("stack_trace", string(debug.Stack())),
+			)
+		},
+	}))
 
 	return app
 }
