@@ -35,4 +35,5 @@ func RegisterGarminRoutes(app *fiber.App, h *handler.GarminHandler, m *middlewar
 	app.Post("/body-battery-by-date", h.GetBodyBatteryByDate)
 	app.Post("/splits/:activityID", h.Splits)
 	app.Post("/sleep-by-date", h.GetSleepByDate)
+	app.Post("/activity-details", h.GetActivityDetails)
 }

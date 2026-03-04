@@ -879,3 +879,237 @@ func (r *GarminRepo) GetActivity(ctx context.Context, id string) (activity *doma
 
 	return activity, nil
 }
+
+// UpsertActivityDetails inserts or updates activity details from Garmin API
+func (r *GarminRepo) UpsertActivityDetails(ctx context.Context, data *domain.ActivityDetailsResponse) (err error) {
+	if data == nil {
+		r.logger.Info("no activity details to upsert")
+		return nil
+	}
+
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			err = fmt.Errorf("panic during activity details upsert: %v", r)
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		r.logger.Error("failed to begin transaction", zap.Error(err))
+		return err
+	}
+
+	summary := &domain.ActivityDetailsSummary{
+		ActivityID:        data.ActivityID,
+		MeasurementCount:  data.MeasurementCount,
+		MetricsCount:      data.MetricsCount,
+		TotalMetricsCount: data.TotalMetricsCount,
+		DetailsAvailable:  data.DetailsAvailable,
+	}
+
+	if err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "activity_id"}},
+		UpdateAll: true,
+	}).Create(summary).Error; err != nil {
+		tx.Rollback()
+		r.logger.Error("failed to upsert activity_details_summary", zap.Error(err), zap.Int64("activity_id", data.ActivityID))
+		return err
+	}
+
+	// 2. Upsert metric_descriptors
+	if len(data.MetricDescriptors) > 0 {
+		// Delete existing descriptors
+		if err := tx.Where("activity_id = ?", data.ActivityID).Delete(&domain.MetricDescriptor{}).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to delete existing metric_descriptors", zap.Error(err))
+			return err
+		}
+
+		// Insert new descriptors
+		var descriptors []domain.MetricDescriptor
+		for _, desc := range data.MetricDescriptors {
+			descriptors = append(descriptors, domain.MetricDescriptor{
+				ActivityID:   data.ActivityID,
+				MetricsIndex: int16(desc.MetricsIndex),
+				MetricKey:    desc.Key,
+				UnitID:       desc.Unit.ID,
+			})
+		}
+
+		if err := tx.CreateInBatches(descriptors, 100).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to insert metric_descriptors", zap.Error(err))
+			return err
+		}
+	}
+
+	// 3. Upsert activity_metrics_timeseries
+	if len(data.ActivityDetailMetrics) > 0 {
+		// Delete existing metrics for this activity
+		if err := tx.Where("activity_id = ?", data.ActivityID).Delete(&domain.ActivityMetricsTimeseries{}).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to delete existing activity_metrics_timeseries", zap.Error(err))
+			return err
+		}
+
+		// Build timeseries records
+		var timeseries []domain.ActivityMetricsTimeseries
+		for seq, metrics := range data.ActivityDetailMetrics {
+			record := domain.ActivityMetricsTimeseries{
+				ActivityID: data.ActivityID,
+				Sequence:   seq,
+			}
+
+			// Map metrics by index (based on metricDescriptors order)
+			for i, value := range metrics.Metrics {
+				if i >= len(data.MetricDescriptors) {
+					break
+				}
+
+				// Skip null values
+				if value == 0 {
+					continue
+				}
+
+				key := data.MetricDescriptors[i].Key
+				factor := data.MetricDescriptors[i].Unit.Factor
+
+				// Apply factor and assign to correct field
+				val := value / factor
+
+				switch key {
+				case "sumDuration":
+					record.SumDuration = &val
+				case "directPower":
+					record.DirectPower = &val
+				case "directGradeAdjustedSpeed":
+					record.DirectGradeAdjustedSpeed = &val
+				case "directAirTemperature":
+					record.DirectAirTemperature = &val
+				case "directHeartRate":
+					hr := int16(val)
+					record.DirectHeartRate = &hr
+				case "sumAccumulatedPower":
+					record.SumAccumulatedPower = &val
+				case "directFractionalCadence":
+					record.DirectFractionalCadence = &val
+				case "directBodyBattery":
+					bb := int16(val)
+					record.DirectBodyBattery = &bb
+				case "directElevation":
+					record.DirectElevation = &val
+				case "directRunCadence":
+					rc := int16(val)
+					record.DirectRunCadence = &rc
+				case "directDoubleCadence":
+					dc := int16(val)
+					record.DirectDoubleCadence = &dc
+				case "directSpeed":
+					record.DirectSpeed = &val
+				case "sumMovingDuration":
+					record.SumMovingDuration = &val
+				case "sumDistance":
+					record.SumDistance = &val
+				case "sumElapsedDuration":
+					record.SumElapsedDuration = &val
+				case "directTimestamp":
+					ts := int64(value)
+					record.DirectTimestamp = &ts
+				case "directLongitude":
+					record.DirectLongitude = &val
+				case "directVerticalOscillation":
+					record.DirectVerticalOscillation = &val
+				case "directLatitude":
+					record.DirectLatitude = &val
+				case "directVerticalRatio":
+					record.DirectVerticalRatio = &val
+				case "directStrideLength":
+					record.DirectStrideLength = &val
+				case "directVerticalSpeed":
+					record.DirectVerticalSpeed = &val
+				case "directGroundContactTime":
+					record.DirectGroundContactTime = &val
+				}
+			}
+
+			timeseries = append(timeseries, record)
+		}
+
+		// Insert in batches (1000 records at a time)
+		if err := tx.CreateInBatches(timeseries, 1000).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to insert activity_metrics_timeseries", zap.Error(err))
+			return err
+		}
+
+		r.logger.Info("inserted activity_metrics_timeseries",
+			zap.Int64("activity_id", data.ActivityID),
+			zap.Int("count", len(timeseries)))
+	}
+
+	// 4. Upsert geo_polylines
+	if len(data.GeoPolylineDTO.Polyline) > 0 || data.GeoPolylineDTO.MinLat != nil {
+		polyline := &domain.GeoPolyline{
+			ActivityID:   data.ActivityID,
+			MinLatitude:  data.GeoPolylineDTO.MinLat,
+			MaxLatitude:  data.GeoPolylineDTO.MaxLat,
+			MinLongitude: data.GeoPolylineDTO.MinLon,
+			MaxLongitude: data.GeoPolylineDTO.MaxLon,
+			Polyline:     "[]",
+		}
+
+		// Convert polyline to JSON string if available
+		if len(data.GeoPolylineDTO.Polyline) > 0 {
+			// Polyline is already []interface{}, convert to JSON
+			polyline.Polyline = fmt.Sprintf("%v", data.GeoPolylineDTO.Polyline)
+		}
+
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "activity_id"}},
+			UpdateAll: true,
+		}).Create(polyline).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to upsert geo_polyline", zap.Error(err))
+			return err
+		}
+	}
+
+	// 5. Upsert heart_rate_timeseries
+	if len(data.HeartRateDTOs) > 0 {
+		// Delete existing HR data
+		if err := tx.Where("activity_id = ?", data.ActivityID).Delete(&domain.HeartRateTimeseries{}).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to delete existing heart_rate_timeseries", zap.Error(err))
+			return err
+		}
+
+		// Insert new HR data
+		var hrData []domain.HeartRateTimeseries
+		for _, hr := range data.HeartRateDTOs {
+			hrData = append(hrData, domain.HeartRateTimeseries{
+				ActivityID:  data.ActivityID,
+				TimestampMs: hr.TimestampMs,
+				HeartRate:   hr.HeartRate,
+			})
+		}
+
+		if err := tx.CreateInBatches(hrData, 1000).Error; err != nil {
+			tx.Rollback()
+			r.logger.Error("failed to insert heart_rate_timeseries", zap.Error(err))
+			return err
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	r.logger.Info("activity details upserted successfully",
+		zap.Int64("activity_id", data.ActivityID),
+		zap.Int("metrics_count", len(data.ActivityDetailMetrics)))
+
+	return nil
+}

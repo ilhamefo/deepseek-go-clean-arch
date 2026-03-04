@@ -9,6 +9,7 @@ import (
 type GarminDashboardRepository interface {
 	GetHeartRate(ctx context.Context, current time.Time) (res HeartRate, err error)
 	GetActivities(ctx context.Context, payload *request.ActivityDashboardRequest) (res []ActivityVM, nextCursor int64, hasMore bool, err error)
+	GetActivityDetails(ctx context.Context, activityID int64) (metrics []*ActivityMetricsTimeseries, res *ActivityVM, err error)
 }
 
 type ActivityVM struct {

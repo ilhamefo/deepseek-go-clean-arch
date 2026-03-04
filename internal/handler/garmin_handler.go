@@ -313,3 +313,26 @@ func (h *GarminHandler) GetActivity(c *fiber.Ctx) error {
 
 	return h.handler.ResponseSuccess(c, res)
 }
+
+// Activity details godoc
+// @Summary Activity details
+// @Description This endpoint is used to get Activity details Garmin activity details.
+// @Tags Garmin
+// @Accept  json
+// @Param request body request.ActivityRequest false "..."
+// @Produce  json
+// @Router /activity-details [post]
+func (h *GarminHandler) GetActivityDetails(c *fiber.Ctx) error {
+	requestActivityID := new(request.ActivityRequest)
+
+	if err := c.BodyParser(requestActivityID); err != nil {
+		return h.handler.ResponseError(c, http.StatusBadRequest, constant.INVALID_REQUEST_BODY, err)
+	}
+
+	err := h.service.ActivityDetails(c.Context(), requestActivityID)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, nil)
+}

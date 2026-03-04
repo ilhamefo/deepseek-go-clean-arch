@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DAYS_TO_FETCH = 10
+	DAYS_TO_FETCH = 120
 )
 
 type GarminService struct {
@@ -221,6 +221,8 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicReque
 	// 	s.logger.Info("hrv_fetched", zap.String("date", date))
 	// }
 
+	s.logger.Info("done_refresh")
+
 	return nil
 }
 
@@ -273,6 +275,7 @@ func (s *GarminService) refreshActivities(ctx context.Context, r *request.Garmin
 			s.logger.Warn("max_activities_limit_reached", zap.Int("limit", 10000))
 			break
 		}
+
 	}
 
 	// Upsert all activities at once
@@ -284,11 +287,22 @@ func (s *GarminService) refreshActivities(ctx context.Context, r *request.Garmin
 		}
 	}
 
+	for _, activity := range allActivities {
+		err = s.ActivityDetails(ctx, &request.ActivityRequest{
+			GarminBasicRequest: *r,
+			ActivityID:         fmt.Sprint(activity.ActivityID),
+		})
+		if err != nil {
+			s.logger.Error("error_fetch_activity_details", zap.Error(err))
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (s *GarminService) fetchActivitiesPage(ctx context.Context, r *request.GarminBasicRequest, start, limit int) ([]*domain.Activity, bool, error) {
-	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activitylist-service/activities/search/activities?activityType=fitness_equipment&limit=%d&start=%d", limit, start)
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activitylist-service/activities/search/activities?limit=%d&start=%d", limit, start)
 
 	maxRetries := 3
 	var lastErr error
@@ -927,6 +941,60 @@ func (s *GarminService) SleepByDate(ctx context.Context, r *request.GarminByDate
 	}
 
 	err = s.repo.UpsertSleepByDate(ctx, sleepData)
+	if err != nil {
+		s.logger.Error("error_upsert_sleep_data", zap.Error(err))
+		return err
+	}
+
+	return err
+}
+
+func (s *GarminService) ActivityDetails(ctx context.Context, r *request.ActivityRequest) (err error) {
+	url := fmt.Sprintf("https://connect.garmin.com/gc-api/activity-service/activity/%s/details?maxChartSize=10000&maxPolylineSize=0&maxHeatMapSize=2000", r.ActivityID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		s.logger.Error("error_make_new_request", zap.Error(err))
+		return err
+	}
+
+	// Header
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("di-backend", "connectapi.garmin.com")
+	req.Header.Set("Connect-Csrf-Token", r.GarminCsrfToken)
+	req.Header.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0")
+
+	// Cookie
+	req.Header.Set("Cookie", r.Cookies)
+
+	// Kirim request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("error_do_request_final", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Error("error_response_status", zap.Int("status_code", resp.StatusCode))
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	// Baca response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Error("error_read_response", zap.Error(err))
+		return err
+	}
+
+	var activityDetails *domain.ActivityDetailsResponse
+	err = json.Unmarshal(body, &activityDetails)
+	if err != nil {
+		s.logger.Error("error_unmarshal_json", zap.Error(err), zap.String("response_preview", string(body)))
+		return err
+	}
+
+	err = s.repo.UpsertActivityDetails(ctx, activityDetails)
 	if err != nil {
 		s.logger.Error("error_upsert_sleep_data", zap.Error(err))
 		return err

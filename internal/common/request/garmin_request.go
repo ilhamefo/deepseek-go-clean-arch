@@ -6,6 +6,7 @@ type GarminBasicRequest struct {
 }
 
 type ActivityRequest struct {
+	GarminBasicRequest
 	ActivityID string `json:"activity_id" query:"activity_id" form:"activity_id" validate:"required"`
 }
 

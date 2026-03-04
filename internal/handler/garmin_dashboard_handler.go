@@ -80,3 +80,39 @@ func (h *GarminDashboardHandler) Activities(c *fiber.Ctx) error {
 
 	return h.handler.ResponseCursorPagination(c, res)
 }
+
+// Get activity detail godoc
+// @Summary Get activity detail with compact metric format
+// @Description This endpoint returns activity metrics in a compact array format with metric descriptors to reduce response size
+// @Tags Dashboard
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} domain.ActivityDetailsResponse "Successfully retrieved activity details"
+// @Failure 400 {object} object{error=string} "Bad request"
+// @Failure 422 {object} object{error_validations=object} "Validation error"
+// @Param request query request.ActivityDetailsDashboardRequest false "Activity details request"
+// @Router /dashboard/activitiy-detail [get]
+func (h *GarminDashboardHandler) ActivityDetails(c *fiber.Ctx) error {
+
+	request := new(request.ActivityDetailsDashboardRequest)
+
+	if err := c.QueryParser(request); err != nil {
+		h.logger.Error("failed to parse query", zap.Error(err))
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": constant.INVALID_REQUEST_BODY,
+		})
+	}
+
+	if err := h.validator.Struct(request); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error_validations": h.validator.ValidationErrors(err),
+		})
+	}
+
+	res, err := h.service.GetActivityDetails(c.Context(), request)
+	if err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	return h.handler.ResponseSuccess(c, res)
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"event-registration/internal/common/request"
 	"event-registration/internal/core/domain"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -61,11 +62,13 @@ func (r *GarminDashboardRepo) GetActivities(ctx context.Context, payload *reques
 		query = query.Where("activity_id < ?", payload.Cursor)
 	}
 
-	switch payload.Type.String() {
-	case "0":
-		break
-	default:
-		query = query.Where("activity_type_id = ?", payload.Type)
+	if payload.Type != nil {
+		switch strconv.Itoa(*payload.Type) {
+		case "0":
+			break
+		default:
+			query = query.Where("activity_type_id = ?", payload.Type)
+		}
 	}
 
 	if len(payload.Search) > 0 {
@@ -87,4 +90,42 @@ func (r *GarminDashboardRepo) GetActivities(ctx context.Context, payload *reques
 	}
 
 	return res, nextCursor, hasMore, nil
+}
+
+func (r *GarminDashboardRepo) GetActivityDetails(ctx context.Context, activityID int64) (metrics []*domain.ActivityMetricsTimeseries, res *domain.ActivityVM, err error) {
+	err = r.db.WithContext(ctx).
+		Where("activity_id = ?", activityID).
+		Order("sequence ASC").
+		Find(&metrics).Error
+
+	if err != nil {
+		r.logger.Error("failed to get activity metrics", zap.Error(err), zap.Int64("activity_id", activityID))
+		return nil, nil, err
+	}
+
+	err = r.db.WithContext(ctx).
+		Select([]string{
+			"activity_id",
+			"activity_type_id",
+			"activity_name",
+			"distance",
+			"average_speed",
+			"max_speed",
+			"calories",
+			"begin_timestamp",
+			"max_hr",
+			"average_hr",
+			"duration",
+			"start_time_local",
+			"total_sets",
+		}).
+		Where("activity_id = ?", activityID).
+		First(&res).Error
+
+	if err != nil {
+		r.logger.Error("failed to get activity summary", zap.Error(err), zap.Int64("activity_id", activityID))
+		return nil, nil, err
+	}
+
+	return metrics, res, nil
 }
