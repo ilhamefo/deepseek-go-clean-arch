@@ -62,6 +62,26 @@ func (r *GarminDashboardRepo) GetActivities(ctx context.Context, payload *reques
 		query = query.Where("activity_id < ?", payload.Cursor)
 	}
 
+	// sort
+	switch payload.SortBy {
+	case "date":
+		query = query.Order("begin_timestamp " + payload.SortOrder)
+	case "distance":
+		query = query.Order("distance " + payload.SortOrder)
+	case "duration":
+		query = query.Order("duration " + payload.SortOrder)
+	case "calories":
+		query = query.Order("calories " + payload.SortOrder)
+	case "maxHr":
+		query = query.Order("max_hr " + payload.SortOrder)
+	case "avgPace":
+		query = query.Order("average_speed " + payload.SortOrder)
+	case "name":
+		query = query.Order("activity_name " + payload.SortOrder)
+	default:
+		query = query.Order("begin_timestamp DESC, activity_id DESC")
+	}
+
 	if payload.Type != nil {
 		switch strconv.Itoa(*payload.Type) {
 		case "0":
