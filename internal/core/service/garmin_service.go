@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	DAYS_TO_FETCH = 120
+	DAYS_TO_FETCH = 10
 )
 
 type GarminService struct {
@@ -133,15 +133,15 @@ func (s *GarminService) FetchSplits(ctx context.Context, r *request.GarminBasicR
 //   - error: Returns error if activity refresh fails, nil otherwise
 func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicRequest) (err error) {
 
-	err = s.refreshActivities(ctx, r)
-	if err != nil {
-		s.logger.Error("error_upsert_all", zap.Error(err))
-		return err
-	}
+	// err = s.refreshActivities(ctx, r)
+	// if err != nil {
+	// 	s.logger.Error("error_upsert_all", zap.Error(err))
+	// 	return err
+	// }
 
 	// fetch Heart Rate Data for the past 60 days
-	// now := time.Now()
-	// days := make([]int, DAYS_TO_FETCH)
+	now := time.Now()
+	days := make([]int, DAYS_TO_FETCH)
 	// for i := range days {
 	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
@@ -205,21 +205,21 @@ func (s *GarminService) Refresh(ctx context.Context, r *request.GarminBasicReque
 	// 	s.logger.Info("hrv_fetched", zap.String("date", date))
 	// }
 
-	// // fetch Sleep Data for the past 60 days
-	// for i := range days {
-	// 	date := now.AddDate(0, 0, -i).Format("2006-01-02")
+	// fetch Sleep Data for the past 60 days
+	for i := range days {
+		date := now.AddDate(0, 0, -i).Format("2006-01-02")
 
-	// 	hrRequest := &request.GarminByDateRequest{
-	// 		GarminBasicRequest: *r,
-	// 		Date:               date,
-	// 	}
-	// 	err = s.SleepByDate(ctx, hrRequest)
-	// 	if err != nil {
-	// 		s.logger.Error("error_fetch_hrv", zap.Error(err), zap.String("date", date))
-	// 		continue
-	// 	}
-	// 	s.logger.Info("hrv_fetched", zap.String("date", date))
-	// }
+		hrRequest := &request.GarminByDateRequest{
+			GarminBasicRequest: *r,
+			Date:               date,
+		}
+		err = s.SleepByDate(ctx, hrRequest)
+		if err != nil {
+			s.logger.Error("error_fetch_hrv", zap.Error(err), zap.String("date", date))
+			continue
+		}
+		s.logger.Info("hrv_fetched", zap.String("date", date))
+	}
 
 	s.logger.Info("done_refresh")
 

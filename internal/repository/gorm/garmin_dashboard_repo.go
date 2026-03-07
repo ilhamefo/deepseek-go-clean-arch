@@ -55,8 +55,7 @@ func (r *GarminDashboardRepo) GetActivities(ctx context.Context, payload *reques
 			"start_time_local",
 			"total_sets",
 		}).
-		Preload("ActivityType").
-		Order("begin_timestamp DESC, activity_id DESC")
+		Preload("ActivityType")
 
 	if payload.Cursor > 0 {
 		query = query.Where("activity_id < ?", payload.Cursor)

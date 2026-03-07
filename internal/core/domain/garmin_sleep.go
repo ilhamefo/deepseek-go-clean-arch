@@ -1,5 +1,35 @@
 package domain
 
+import (
+	"encoding/json"
+)
+
+// ParsedValue represents a value with its source and parsed integer value
+type ParsedValue struct {
+	Source      string `json:"source,omitempty" gorm:"column:source"`
+	ParsedValue int    `json:"parsedValue,omitempty" gorm:"column:parsed_value"`
+}
+
+// UnmarshalJSON implements custom unmarshaling to handle both number (from API) and object formats
+func (p *ParsedValue) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal as a number first (from Garmin API response)
+	var num float64
+	if err := json.Unmarshal(data, &num); err == nil {
+		p.ParsedValue = int(num)
+		p.Source = ""
+		return nil
+	}
+
+	// If not a number, try to unmarshal as an object with source and parsedValue fields
+	type Alias ParsedValue
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(p),
+	}
+	return json.Unmarshal(data, &aux)
+}
+
 // SleepResponse represents the complete Garmin sleep data response
 type SleepResponse struct {
 	DailySleepDTO                        DailySleepDTO                     `json:"dailySleepDTO" gorm:"-"`
@@ -50,17 +80,17 @@ type DailySleepDTO struct {
 	DeviceRemCapable              bool        `json:"deviceRemCapable" gorm:"column:device_rem_capable"`
 	Retro                         bool        `json:"retro" gorm:"column:retro"`
 	SleepFromDevice               bool        `json:"sleepFromDevice" gorm:"column:sleep_from_device"`
-	AverageSpO2Value              float64     `json:"averageSpO2Value" gorm:"embedded;embeddedPrefix:avg_spo2_"`
+	AverageSpO2Value              ParsedValue `json:"averageSpO2Value" gorm:"embedded;embeddedPrefix:avg_spo2_"`
 	LowestSpO2Value               int         `json:"lowestSpO2Value" gorm:"column:lowest_spo2_value"`
 	HighestSpO2Value              int         `json:"highestSpO2Value" gorm:"column:highest_spo2_value"`
-	AverageSpO2HRSleep            float64     `json:"averageSpO2HRSleep" gorm:"embedded;embeddedPrefix:avg_spo2_hr_"`
-	AverageRespirationValue       float64     `json:"averageRespirationValue" gorm:"embedded;embeddedPrefix:avg_respiration_"`
-	LowestRespirationValue        float64     `json:"lowestRespirationValue" gorm:"embedded;embeddedPrefix:lowest_respiration_"`
-	HighestRespirationValue       float64     `json:"highestRespirationValue" gorm:"embedded;embeddedPrefix:highest_respiration_"`
+	AverageSpO2HRSleep            ParsedValue `json:"averageSpO2HRSleep" gorm:"embedded;embeddedPrefix:avg_spo2_hr_"`
+	AverageRespirationValue       ParsedValue `json:"averageRespirationValue" gorm:"embedded;embeddedPrefix:avg_respiration_"`
+	LowestRespirationValue        ParsedValue `json:"lowestRespirationValue" gorm:"embedded;embeddedPrefix:lowest_respiration_"`
+	HighestRespirationValue       ParsedValue `json:"highestRespirationValue" gorm:"embedded;embeddedPrefix:highest_respiration_"`
 	AwakeCount                    int         `json:"awakeCount" gorm:"column:awake_count"`
-	AvgSleepStress                float64     `json:"avgSleepStress" gorm:"embedded;embeddedPrefix:avg_sleep_stress_"`
+	AvgSleepStress                ParsedValue `json:"avgSleepStress" gorm:"embedded;embeddedPrefix:avg_sleep_stress_"`
 	AgeGroup                      string      `json:"ageGroup" gorm:"column:age_group;size:20"`
-	AvgHeartRate                  float64     `json:"avgHeartRate" gorm:"embedded;embeddedPrefix:avg_heart_rate_"`
+	AvgHeartRate                  ParsedValue `json:"avgHeartRate" gorm:"embedded;embeddedPrefix:avg_heart_rate_"`
 	SleepScoreFeedback            string      `json:"sleepScoreFeedback" gorm:"column:sleep_score_feedback;size:50"`
 	SleepScoreInsight             string      `json:"sleepScoreInsight" gorm:"column:sleep_score_insight;size:50"`
 	SleepScorePersonalizedInsight string      `json:"sleepScorePersonalizedInsight" gorm:"column:sleep_score_personalized_insight;size:100"`
@@ -180,18 +210,18 @@ func (SleepRestlessMoment) TableName() string {
 
 // WellnessSpO2SleepSummaryDTO represents SpO2 summary during sleep
 type WellnessSpO2SleepSummaryDTO struct {
-	ID                             string  `json:"id" gorm:"column:id;primaryKey"`
-	SleepID                        int64   `json:"sleepId" gorm:"column:sleep_id;index"`
-	UserProfilePk                  int64   `json:"userProfilePk" gorm:"column:user_profile_pk"`
-	DeviceId                       int64   `json:"deviceId" gorm:"column:device_id"`
-	SleepMeasurementStartGMT       string  `json:"sleepMeasurementStartGMT" gorm:"column:sleep_measurement_start_gmt;type:timestamp"`
-	SleepMeasurementEndGMT         string  `json:"sleepMeasurementEndGMT" gorm:"column:sleep_measurement_end_gmt;type:timestamp"`
-	AlertThresholdValue            *int    `json:"alertThresholdValue" gorm:"column:alert_threshold_value"`
-	NumberOfEventsBelowThreshold   *int    `json:"numberOfEventsBelowThreshold" gorm:"column:number_of_events_below_threshold"`
-	DurationOfEventsBelowThreshold *int    `json:"durationOfEventsBelowThreshold" gorm:"column:duration_of_events_below_threshold"`
-	AverageSPO2                    float64 `json:"averageSPO2" gorm:"-"`
-	AverageSpO2HR                  float64 `json:"averageSpO2HR" gorm:"-"`
-	LowestSPO2                     int     `json:"lowestSPO2" gorm:"column:lowest_spo2"`
+	ID                             string      `json:"id" gorm:"column:id;primaryKey"`
+	SleepID                        int64       `json:"sleepId" gorm:"column:sleep_id;index"`
+	UserProfilePk                  int64       `json:"userProfilePk" gorm:"column:user_profile_pk"`
+	DeviceId                       int64       `json:"deviceId" gorm:"column:device_id"`
+	SleepMeasurementStartGMT       string      `json:"sleepMeasurementStartGMT" gorm:"column:sleep_measurement_start_gmt;type:timestamp"`
+	SleepMeasurementEndGMT         string      `json:"sleepMeasurementEndGMT" gorm:"column:sleep_measurement_end_gmt;type:timestamp"`
+	AlertThresholdValue            *int        `json:"alertThresholdValue" gorm:"column:alert_threshold_value"`
+	NumberOfEventsBelowThreshold   *int        `json:"numberOfEventsBelowThreshold" gorm:"column:number_of_events_below_threshold"`
+	DurationOfEventsBelowThreshold *int        `json:"durationOfEventsBelowThreshold" gorm:"column:duration_of_events_below_threshold"`
+	AverageSPO2                    ParsedValue `json:"averageSPO2" gorm:"embedded;embeddedPrefix:average_spo2_"`
+	AverageSpO2HR                  ParsedValue `json:"averageSpO2HR" gorm:"embedded;embeddedPrefix:average_spo2_hr_"`
+	LowestSPO2                     int         `json:"lowestSPO2" gorm:"column:lowest_spo2"`
 }
 
 func (WellnessSpO2SleepSummaryDTO) TableName() string {

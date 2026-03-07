@@ -38,6 +38,9 @@ func (h *Handler) ParseUser(c *fiber.Ctx) (user domain.User) {
 }
 
 func (h *Handler) ResponseError(c *fiber.Ctx, status int, message string, err error) error {
+
+	h.logger.Error("handler error", zap.String("message", message), zap.Error(err))
+
 	return c.Status(status).JSON(fiber.Map{
 		"status":  status,
 		"message": message,

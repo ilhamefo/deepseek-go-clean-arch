@@ -843,7 +843,16 @@ func (r *GarminRepo) UpsertSleepByDate(ctx context.Context, data *domain.SleepRe
 		return err
 	}
 
-	err = tx.Omit("ID").Clauses(
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		tx.Rollback()
+		return ctx.Err()
+	default:
+	}
+
+	// 1. Upsert DailySleepDTO (main sleep data)
+	err = tx.Clauses(
 		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
 		clause.OnConflict{
 			Columns: []clause.Column{
@@ -859,12 +868,114 @@ func (r *GarminRepo) UpsertSleepByDate(ctx context.Context, data *domain.SleepRe
 		return err
 	}
 
-	// exec end here
+	sleepID := data.DailySleepDTO.ID
+	r.logger.Debug("daily sleep upserted", zap.Int64("sleep_id", sleepID))
+
+	// 2. Upsert SleepScores and details
+	if err := r.upsertSleepScores(tx, sleepID, &data.DailySleepDTO.SleepScores); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 3. Upsert SleepNeed (current and next)
+	if err := r.upsertSleepNeeds(tx, sleepID, &data.DailySleepDTO.SleepNeed, &data.DailySleepDTO.NextSleepNeed); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 4. Upsert SleepMovements
+	if len(data.SleepMovement) > 0 {
+		if err := r.upsertSleepMovements(tx, sleepID, data.SleepMovement); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 5. Upsert SleepLevels
+	if len(data.SleepLevels) > 0 {
+		if err := r.upsertSleepLevels(tx, sleepID, data.SleepLevels); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 6. Upsert SleepRestlessMoments
+	if len(data.SleepRestlessMoments) > 0 {
+		if err := r.upsertSleepRestlessMoments(tx, sleepID, data.SleepRestlessMoments); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 7. Upsert SpO2 Summary
+	if err := r.upsertSpO2Summary(tx, sleepID, &data.WellnessSpO2SleepSummaryDTO); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 8. Upsert SpO2 Data
+	if len(data.WellnessEpochSPO2DataDTOList) > 0 {
+		if err := r.upsertSpO2Data(tx, sleepID, data.WellnessEpochSPO2DataDTOList); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 9. Upsert Respiration Data
+	if len(data.WellnessEpochRespirationDataDTOList) > 0 {
+		if err := r.upsertRespirationData(tx, sleepID, data.WellnessEpochRespirationDataDTOList); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 10. Upsert Heart Rate Data
+	if len(data.SleepHeartRate) > 0 {
+		if err := r.upsertSleepHeartRate(tx, sleepID, data.SleepHeartRate); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 11. Upsert Stress Data
+	if len(data.SleepStress) > 0 {
+		if err := r.upsertSleepStress(tx, sleepID, data.SleepStress); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 12. Upsert Body Battery Data
+	if len(data.SleepBodyBattery) > 0 {
+		if err := r.upsertSleepBodyBattery(tx, sleepID, data.SleepBodyBattery); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 13. Upsert HRV Data
+	if len(data.HrvData) > 0 {
+		if err := r.upsertSleepHRV(tx, sleepID, data.HrvData); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 14. Upsert Breathing Disruption Data
+	if len(data.BreathingDisruptionData) > 0 {
+		if err := r.upsertBreathingDisruption(tx, sleepID, data.BreathingDisruptionData); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		r.logger.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}
 
+	r.logger.Info("sleep data upserted successfully", zap.Int64("sleep_id", sleepID))
 	return nil
 }
 
@@ -1111,5 +1222,355 @@ func (r *GarminRepo) UpsertActivityDetails(ctx context.Context, data *domain.Act
 		zap.Int64("activity_id", data.ActivityID),
 		zap.Int("metrics_count", len(data.ActivityDetailMetrics)))
 
+	return nil
+}
+
+// upsertSleepScores handles inserting/updating sleep scores and their details
+func (r *GarminRepo) upsertSleepScores(tx *gorm.DB, sleepID int64, scores *domain.SleepScores) error {
+	if scores == nil {
+		return nil
+	}
+
+	scores.SleepID = sleepID
+
+	// Upsert main sleep scores record
+	if err := tx.Omit("ID").Clauses(
+		clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "sleep_id"}},
+			UpdateAll: true,
+		}).Create(scores).Error; err != nil {
+		r.logger.Error("failed to upsert sleep_scores", zap.Error(err), zap.Int64("sleep_id", sleepID))
+		return err
+	}
+
+	scoresID := scores.ID
+	r.logger.Debug("sleep scores upserted", zap.String("scores_id", scoresID), zap.Int64("sleep_id", sleepID))
+
+	// Delete existing score details
+	if err := tx.Where("sleep_scores_id = ?", scoresID).Delete(&domain.SleepScore{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep score details", zap.Error(err))
+		return err
+	}
+
+	// Insert all score details
+	var scoreDetails []domain.SleepScore
+	scoreTypes := []struct {
+		scoreType string
+		score     domain.SleepScore
+	}{
+		{"totalDuration", scores.TotalDuration},
+		{"stress", scores.Stress},
+		{"awakeCount", scores.AwakeCount},
+		{"remPercentage", scores.RemPercentage},
+		{"restlessness", scores.Restlessness},
+		{"lightPercentage", scores.LightPercentage},
+		{"deepPercentage", scores.DeepPercentage},
+	}
+
+	for _, st := range scoreTypes {
+		detail := st.score
+		detail.SleepScoresID = scoresID
+		detail.ScoreType = st.scoreType
+		scoreDetails = append(scoreDetails, detail)
+	}
+
+	if len(scoreDetails) > 0 {
+		if err := tx.Omit("ID").Create(&scoreDetails).Error; err != nil {
+			r.logger.Error("failed to insert sleep score details", zap.Error(err))
+			return err
+		}
+		r.logger.Debug("sleep score details inserted", zap.Int("count", len(scoreDetails)))
+	}
+
+	return nil
+}
+
+// upsertSleepNeeds handles inserting/updating current and next sleep needs
+func (r *GarminRepo) upsertSleepNeeds(tx *gorm.DB, sleepID int64, current *domain.SleepNeed, next *domain.SleepNeed) error {
+	var needs []domain.SleepNeed
+
+	if current != nil && current.UserProfilePk > 0 {
+		current.SleepID = sleepID
+		current.NeedType = "current"
+		needs = append(needs, *current)
+	}
+
+	if next != nil && next.UserProfilePk > 0 {
+		next.SleepID = sleepID
+		next.NeedType = "next"
+		needs = append(needs, *next)
+	}
+
+	if len(needs) == 0 {
+		return nil
+	}
+
+	for _, need := range needs {
+		if err := tx.Omit("ID").Clauses(
+			clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "sleep_id"},
+					{Name: "need_type"},
+				},
+				UpdateAll: true,
+			}).Create(&need).Error; err != nil {
+			r.logger.Error("failed to upsert sleep_need", zap.Error(err), zap.String("need_type", need.NeedType))
+			return err
+		}
+	}
+
+	r.logger.Debug("sleep needs upserted", zap.Int("count", len(needs)))
+	return nil
+}
+
+// upsertSleepMovements handles inserting/updating sleep movements
+func (r *GarminRepo) upsertSleepMovements(tx *gorm.DB, sleepID int64, movements []domain.SleepMovement) error {
+	// Delete existing movements for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.SleepMovement{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_movements", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all movements
+	for i := range movements {
+		movements[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(movements, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_movements", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("sleep movements inserted", zap.Int("count", len(movements)))
+	return nil
+}
+
+// upsertSleepLevels handles inserting/updating sleep levels
+func (r *GarminRepo) upsertSleepLevels(tx *gorm.DB, sleepID int64, levels []domain.SleepLevel) error {
+	// Delete existing levels for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.SleepLevel{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_levels", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all levels
+	for i := range levels {
+		levels[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(levels, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_levels", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("sleep levels inserted", zap.Int("count", len(levels)))
+	return nil
+}
+
+// upsertSleepRestlessMoments handles inserting/updating restless moments
+func (r *GarminRepo) upsertSleepRestlessMoments(tx *gorm.DB, sleepID int64, moments []domain.SleepRestlessMoment) error {
+	// Delete existing restless moments for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.SleepRestlessMoment{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_restless_moments", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all moments
+	for i := range moments {
+		moments[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(moments, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_restless_moments", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("sleep restless moments inserted", zap.Int("count", len(moments)))
+	return nil
+}
+
+// upsertSpO2Summary handles inserting/updating SpO2 summary
+func (r *GarminRepo) upsertSpO2Summary(tx *gorm.DB, sleepID int64, summary *domain.WellnessSpO2SleepSummaryDTO) error {
+	if summary == nil || summary.UserProfilePk == 0 {
+		return nil
+	}
+
+	summary.SleepID = sleepID
+
+	if err := tx.Omit("ID").Clauses(
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "sleep_id"}},
+			UpdateAll: true,
+		}).Create(summary).Error; err != nil {
+		r.logger.Error("failed to upsert sleep_spo2_summary", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("SpO2 summary upserted", zap.Int64("sleep_id", sleepID))
+	return nil
+}
+
+// upsertSpO2Data handles inserting/updating SpO2 readings
+func (r *GarminRepo) upsertSpO2Data(tx *gorm.DB, sleepID int64, data []domain.WellnessEpochSPO2DataDTO) error {
+	// Delete existing SpO2 data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.WellnessEpochSPO2DataDTO{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_spo2_data", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_spo2_data", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("SpO2 data inserted", zap.Int("count", len(data)))
+	return nil
+}
+
+// upsertRespirationData handles inserting/updating respiration data
+func (r *GarminRepo) upsertRespirationData(tx *gorm.DB, sleepID int64, data []domain.WellnessEpochRespirationDataDTO) error {
+	// Delete existing respiration data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.WellnessEpochRespirationDataDTO{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_respiration_data", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_respiration_data", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("respiration data inserted", zap.Int("count", len(data)))
+	return nil
+}
+
+// upsertSleepHeartRate handles inserting/updating heart rate data
+func (r *GarminRepo) upsertSleepHeartRate(tx *gorm.DB, sleepID int64, data []domain.SleepHeartRate) error {
+	// Delete existing heart rate data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.SleepHeartRate{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_heart_rate", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_heart_rate", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("heart rate data inserted", zap.Int("count", len(data)))
+	return nil
+}
+
+// upsertSleepStress handles inserting/updating stress data
+func (r *GarminRepo) upsertSleepStress(tx *gorm.DB, sleepID int64, data []domain.SleepStress) error {
+	// Delete existing stress data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.SleepStress{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_stress", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_stress", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("stress data inserted", zap.Int("count", len(data)))
+	return nil
+}
+
+// upsertSleepBodyBattery handles inserting/updating body battery data
+func (r *GarminRepo) upsertSleepBodyBattery(tx *gorm.DB, sleepID int64, data []domain.SleepBodyBattery) error {
+	// Delete existing body battery data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.SleepBodyBattery{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_body_battery", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_body_battery", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("body battery data inserted", zap.Int("count", len(data)))
+	return nil
+}
+
+// upsertSleepHRV handles inserting/updating HRV data
+func (r *GarminRepo) upsertSleepHRV(tx *gorm.DB, sleepID int64, data []domain.HrvData) error {
+	// Delete existing HRV data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.HrvData{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_hrv_data", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_hrv_data", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("HRV data inserted", zap.Int("count", len(data)))
+	return nil
+}
+
+// upsertBreathingDisruption handles inserting/updating breathing disruption data
+func (r *GarminRepo) upsertBreathingDisruption(tx *gorm.DB, sleepID int64, data []domain.BreathingDisruptionData) error {
+	// Delete existing breathing disruption data for this sleep
+	if err := tx.Where("sleep_id = ?", sleepID).Delete(&domain.BreathingDisruptionData{}).Error; err != nil {
+		r.logger.Error("failed to delete existing sleep_breathing_disruption", zap.Error(err))
+		return err
+	}
+
+	// Set sleep_id for all data points
+	for i := range data {
+		data[i].SleepID = sleepID
+	}
+
+	// Insert in batches
+	if err := tx.Omit("ID").CreateInBatches(data, 500).Error; err != nil {
+		r.logger.Error("failed to insert sleep_breathing_disruption", zap.Error(err))
+		return err
+	}
+
+	r.logger.Debug("breathing disruption data inserted", zap.Int("count", len(data)))
 	return nil
 }
